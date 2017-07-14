@@ -164,10 +164,10 @@ rm(list = c("nodesize_df","holdout_prediction","i","j",
 
 Holdout_prediction_Prob = predict(RF_model,newdata = HoldOut_data, type='prob')
 Holdout_prediction_class =predict(RF_model,newdata = HoldOut_data, type='class')
-HoldOut_data$RF_prob =Holdout_prediction_Prob[,1]
+HoldOut_data$RF_prob =Holdout_prediction_Prob[,2]
 HoldOut_data$RF_class = Holdout_prediction_class
 
-HoldOut_Original$RF_class = Holdout_prediction_class
+HoldOut_Original$RF_Class = Holdout_prediction_class
 
 # Classification 
 Confusion_Matrix_RF=addmargins(table(actual = HoldOut_data$Attrition, Prediction = HoldOut_data$RF_class))
@@ -183,18 +183,16 @@ decile <- function(x){
   }
   return (
     ifelse(x<deciles[1], 1,
-           ifelse(x<deciles[2], 2,
-                  ifelse(x<deciles[3], 3,
-                         ifelse(x<deciles[4], 4,
-                                ifelse(x<deciles[5], 5,
-                                       ifelse(x<deciles[6], 6,
-                                              ifelse(x<deciles[7], 7,
-                                                     ifelse(x<deciles[8], 8,
-                                                            ifelse(x<deciles[9], 9, 10 ))))))))))
+    ifelse(x<deciles[2], 2,
+    ifelse(x<deciles[3], 3,
+    ifelse(x<deciles[4], 4,
+    ifelse(x<deciles[5], 5,
+    ifelse(x<deciles[6], 6,
+    ifelse(x<deciles[7], 7,
+    ifelse(x<deciles[8], 8,
+    ifelse(x<deciles[9], 9, 10 ))))))))))
 }
-
-
-HoldOut_data$decile = decile(Holdout_prediction_Prob[,1])
+HoldOut_data$decile = decile(Holdout_prediction_Prob[,2])
 require(data.table)
 require(scales)
 HoldOut_data$Attrition_Numeric = ifelse(HoldOut_data$Attrition=="No",0,1)
@@ -218,27 +216,25 @@ Ranking <-function(tmp_DT){
   return(rank)
 }
 
-HoldoutRanking = Ranking(data.table(HoldOut_data))
+Holdout_RF_Ranking = Ranking(data.table(HoldOut_data))
 
 Dev_data$Attrition_Numeric = ifelse(Dev_data$Attrition=="No",0,1)
 Dev_data_Prob = predict(RF_model,newdata = Dev_data, type='prob')
 Dev_data_class =predict(RF_model,newdata = Dev_data, type='class')
-Dev_data$prob =Dev_data_Prob[,1]
-Dev_data$decile = decile(Dev_data_Prob[,1])
+Dev_data$RF_prob =Dev_data_Prob[,2]
+Dev_data$RF_decile = decile(Dev_data_Prob[,2])
+Dev_data$RF_class = Dev_data_class
+Dev_RF_Ranking = Ranking(data.table((Dev_data)))
 
-devRanking = Ranking(data.table((Dev_data)))
+View(Holdout_RF_Ranking)
+View(Dev_RF_Ranking)
+hist(HoldOut_data$RF_prob)
+hist(Dev_data$RF_prob)
+rm(list = c("Dev_data_Prob","Holdout_prediction_Prob","Dev_data_class",
+            "Holdout_prediction_class"))
 
-View(HoldoutRanking)
-
-hist(HoldOut_data$prob)
-hist(Dev_data$prob)
-
-
-## NN Complete try with removing last split of the categorical dummy -----
-
+## NueralNet -----
 Integer_dataset= data_set[,c(integer_feildIDs,factor_feildIDs)]
-names(Integer_dataset)
-
 Integer_dataset = Integer_dataset[,-c(5,6,18,34)] # removing 'Over18','EmployeeCount','EmployeeNumber','StandardHours'
 
 temp <- data.frame(model.matrix(~ BusinessTravel - 1, data = Integer_dataset))
@@ -266,7 +262,7 @@ Integer_dataset$Attrition = as.numeric(as.character(factor(Integer_dataset$Attri
                                                            labels = c(0,1))))
 which(sapply(Integer_dataset, class) == "factor")
 require(caret)
-split_vector = sample.split(Integer_dataset$Attrition,SplitRatio = 0.75)
+#split_vector = sample.split(Integer_dataset$Attrition,SplitRatio = 0.75)
 dev_data_int = subset(Integer_dataset, split_vector ==T)
 hold_data_int = subset(Integer_dataset, split_vector ==F)
 
@@ -290,10 +286,10 @@ NN_model_int = neuralnet(formula = long_formula,
                          threshold = 0.01,
                          stepmax = 4000)
 plot(NN_model_int)
-y_pred = NN_model_int$net.result[[1]]
-dev_df = data.frame(y_pred,dev_data_int$Attrition)
-y_pred = ifelse(y_pred>=0.5,1,0)
-addmargins(table(dev_data_int$Attrition,y_pred)) # 97.7%
+dev_NN_pred = NN_model_int$net.result[[1]]
+dev_df = data.frame(dev_NN_pred,dev_data_int$Attrition)
+dev_NN_pred = ifelse(dev_NN_pred>=0.5,1,0)
+addmargins(table(dev_data_int$Attrition,dev_NN_pred)) # ~98.4%
 
 for(i in 1:45){
   if(i!=24){
@@ -301,8 +297,21 @@ for(i in 1:45){
   }
 }
 
-holdout_pred = compute(NN_model_int,hold_data_int[,-24])
-holdout_pred = holdout_pred$net.result
-hold_df = data.frame(holdout_pred,hold_data_int$Attrition)
-holdout_pred = ifelse(holdout_pred>=0.5,1,0)
-addmargins(table(hold_data_int$Attrition,holdout_pred)) #94.5
+holdout_NN_pred = compute(NN_model_int,hold_data_int[,-24])
+holdout_NN_pred = holdout_NN_pred$net.result
+hold_df = data.frame(holdout_NN_pred,hold_data_int$Attrition)
+holdout_NN_pred = ifelse(holdout_NN_pred>=0.5,1,0)
+addmargins(table(hold_data_int$Attrition,holdout_NN_pred)) # ~94.5
+
+# Ensumabling -------
+Dev_Original$Attrition = ifelse(Dev_Original$Attrition=="No",0,1)
+Dev_Original$RF_Class = ifelse(Dev_data$RF_class=="No",0,1)
+Dev_Original$NN_Class = dev_NN_pred
+
+HoldOut_Original$Attrition = ifelse(HoldOut_Original$Attrition=="No",0,1)
+HoldOut_Original$RF_Class = ifelse(HoldOut_Original$RF_Class=="No",0,1)
+HoldOut_Original$NN_Class = holdout_NN_pred
+
+test = subset( HoldOut_Original, RF_Class!=NN_Class )
+nrow(HoldOut_Original)
+View(test[,c(2,37,38)])
