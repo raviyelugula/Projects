@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1500056517039.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "AA10C9B1",
+    "lastKnownWriteTime" : 7813590796663464571,
+    "last_content_update" : 1500056517039,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "5E4380E9",
+        "caption" : "HoldoutRanking",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=HoldoutRanking&cache_key=5E4380E9",
+        "displayedObservations" : 10,
+        "environment" : "",
+        "object" : "HoldoutRanking",
+        "preview" : 0,
+        "totalObservations" : 10,
+        "variables" : 10
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
