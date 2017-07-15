@@ -1,4 +1,3 @@
-
 ### Reading Train data
 data_set = read.csv('train.csv', header = T)
 head(data_set)
