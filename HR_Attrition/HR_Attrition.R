@@ -16,7 +16,7 @@ require(ggplot2)
 # bar plots for all the factor variables
 for( i in factor_feildIDs){
   name = paste(names(Dev_data[i]),'.png', sep = '')
-  png(filename = name, width = 800, height = 600, units = 'px')
+  png(filename =paste0('plots/',name), width = 800, height = 600, units = 'px')
   print(ggplot( Dev_data,
                 aes(x=Dev_data[,i],
                     fill =Dev_data$Attrition))+
@@ -31,7 +31,7 @@ for( i in factor_feildIDs){
 # single category variable in categorical type variables 
 for(i in factor_feildIDs){
   if(length(levels(Dev_data[,i]))==1){
-    print.noquote(paste0(names(Dev_data[i]),' has only 1 category and its feild id is ',i))
+    print.noquote(paste0(names(Dev_data[i]),' has only 1 category and its field id is ',i))
   }
 }
 # single valued variable in interger type
@@ -45,17 +45,17 @@ for( i in integer_feildIDs){
 require(gclus)
 cor_int_data1 = Dev_data[c(head(integer_feildIDs,13))]
 cor_int_data2 = Dev_data[c(tail(integer_feildIDs,13))]
-png(filename = 'Correlation_1.png', width = 1600, height = 1200, units = 'px')
+png(filename = 'plots/Correlation_1.png', width = 1600, height = 1200, units = 'px')
 cpairs(data = cor_int_data1,
        panel.colors = dmat.color(abs(cor(cor_int_data1))),
        gap =0.5)
 dev.off()
-png(filename = 'Correlation_2.png', width = 1600, height = 1200, units = 'px')
+png(filename = 'plots/Correlation_2.png', width = 1600, height = 1200, units = 'px')
 cpairs(data = cor_int_data2,
        panel.colors = dmat.color(abs(cor(cor_int_data2))),
        gap =0.5)
 dev.off() 
-rm(list = c("split_vector","cor_int_data1",
+rm(list = c("cor_int_data1",
             "cor_int_data2","i","name"))
 ## Missing data Check -----
 Missing_data_Check <- function(data_set){
@@ -75,6 +75,7 @@ if(length(which(Missing_data_Check(Dev_data)>0))==0){
 
 ## Removing non-useful data ----
 Dev_data = Dev_data[,-c(9,10,22,27)] # removing 'Over18','EmployeeCount','StandardHours','Employeenumber'
+HoldOut_data = HoldOut_data[,-c(9,10,22,27)]
 ## Random Forset on Holdout data & Tunning  ----
 library(randomForest)
 # Dense Forest
@@ -139,41 +140,42 @@ for (i in seq(from = 1, to = 90 , by = 3)){
 }
 nodesize_df = data.frame(x=temp_nodesize,y1=temp_dev_acc,y2=temp_hold_acc)
 library(ggplot2)
-png('node_size.png',width = 800, height = 600, units = 'px')
+#png('plots/node_size.png',width = 800, height = 600, units = 'px')
 ggplot() +
   geom_line(data = nodesize_df,
             aes(nodesize_df$x,nodesize_df$y1),col = 'red')+
-  geom_line(data = nodesize_df,
-            aes(nodesize_df$x,nodesize_df$y2),col = 'green')+
+  # geom_line(data = nodesize_df,
+  #           aes(nodesize_df$x,nodesize_df$y2),col = 'green')+
   xlab('node size')+
   ylab('accuracy')+
-  ggtitle('ntree is 500 & mtry is 6')
-dev.off()
+  ggtitle('ntree is 500 & mtry is 19')
+#dev.off()
 # final Random forest ------
 set.seed(123)
 RF_model = randomForest(x = Dev_data[-2],
                         y = Dev_data$Attrition,
                         data_set = Dev_data,
                         ntree =  500,
-                        mtry =  6,
+                        mtry =  19,
                         nodesize = 2)
 RF_model
 plot(RF_model)
 rm(list = c("nodesize_df","holdout_prediction","i","j",
             "temp_nodesize","temp_dev_acc","temp_hold_acc","table"))
-
+Dev_Original$RF_Prob = predict(RF_model,newdata = Dev_data, type='prob')
+Dev_Original$RF_Prob =Dev_Original$RF_Prob[,2]
 Holdout_prediction_Prob = predict(RF_model,newdata = HoldOut_data, type='prob')
 Holdout_prediction_class =predict(RF_model,newdata = HoldOut_data, type='class')
 HoldOut_data$RF_prob =Holdout_prediction_Prob[,2]
 HoldOut_data$RF_class = Holdout_prediction_class
-
+HoldOut_Original$RF_prob = HoldOut_data$RF_prob
 HoldOut_Original$RF_Class = Holdout_prediction_class
 
 # Classification 
 Confusion_Matrix_RF=addmargins(table(actual = HoldOut_data$Attrition, Prediction = HoldOut_data$RF_class))
 Confusion_Matrix_RF
 Accuracy_RF=(Confusion_Matrix_RF[1]+Confusion_Matrix_RF[5])/Confusion_Matrix_RF[9]*100
-Accuracy_RF
+Accuracy_RF #96.82 %
 
 # KS Ranking 
 decile <- function(x){
@@ -222,7 +224,7 @@ Dev_data$Attrition_Numeric = ifelse(Dev_data$Attrition=="No",0,1)
 Dev_data_Prob = predict(RF_model,newdata = Dev_data, type='prob')
 Dev_data_class =predict(RF_model,newdata = Dev_data, type='class')
 Dev_data$RF_prob =Dev_data_Prob[,2]
-Dev_data$RF_decile = decile(Dev_data_Prob[,2])
+Dev_data$decile = decile(Dev_data_Prob[,2])
 Dev_data$RF_class = Dev_data_class
 Dev_RF_Ranking = Ranking(data.table((Dev_data)))
 
@@ -262,9 +264,11 @@ Integer_dataset$Attrition = as.numeric(as.character(factor(Integer_dataset$Attri
                                                            labels = c(0,1))))
 which(sapply(Integer_dataset, class) == "factor")
 require(caret)
-#split_vector = sample.split(Integer_dataset$Attrition,SplitRatio = 0.75)
+set.seed(123)
+split_vector = sample.split(Integer_dataset$Attrition,SplitRatio = 0.7)
 dev_data_int = subset(Integer_dataset, split_vector ==T)
 hold_data_int = subset(Integer_dataset, split_vector ==F)
+
 
 for(i in 1:45){
   if(i!=24){
@@ -288,8 +292,12 @@ NN_model_int = neuralnet(formula = long_formula,
 plot(NN_model_int)
 dev_NN_pred = NN_model_int$net.result[[1]]
 dev_df = data.frame(dev_NN_pred,dev_data_int$Attrition)
+Dev_Original$NN_prob =dev_NN_pred
 dev_NN_pred = ifelse(dev_NN_pred>=0.5,1,0)
-addmargins(table(dev_data_int$Attrition,dev_NN_pred)) # ~98.4%
+table = addmargins(table(dev_data_int$Attrition,dev_NN_pred)) # ~98.4%
+table
+dev_NN_acc = (table[1]+table[5])/table[9]
+dev_NN_acc
 
 for(i in 1:45){
   if(i!=24){
@@ -300,18 +308,35 @@ for(i in 1:45){
 holdout_NN_pred = compute(NN_model_int,hold_data_int[,-24])
 holdout_NN_pred = holdout_NN_pred$net.result
 hold_df = data.frame(holdout_NN_pred,hold_data_int$Attrition)
+HoldOut_Original$NN_Pred = holdout_NN_pred
 holdout_NN_pred = ifelse(holdout_NN_pred>=0.5,1,0)
-addmargins(table(hold_data_int$Attrition,holdout_NN_pred)) # ~94.5
+table =addmargins(table(hold_data_int$Attrition,holdout_NN_pred)) # ~94.5
+table
+hold_NN_acc = (table[1]+table[5])/table[9]
+hold_NN_acc
 
-# Ensumabling -------
+# Ensembling  -------
 Dev_Original$Attrition = ifelse(Dev_Original$Attrition=="No",0,1)
 Dev_Original$RF_Class = ifelse(Dev_data$RF_class=="No",0,1)
 Dev_Original$NN_Class = dev_NN_pred
+
+Dev_Original$Ensemble_prod = (Dev_Original$RF_Prob + Dev_Original$NN_prob)/2
+Dev_Original$Class = ifelse(Dev_Original$Ensemble_prod>=0.3,1,0)
+
+table =addmargins(table(Dev_Original$Attrition,Dev_Original$Class)) # 99.8 %
+table
+dev_Ensemble_acc = (table[1]+table[5])/table[9]
+dev_Ensemble_acc
 
 HoldOut_Original$Attrition = ifelse(HoldOut_Original$Attrition=="No",0,1)
 HoldOut_Original$RF_Class = ifelse(HoldOut_Original$RF_Class=="No",0,1)
 HoldOut_Original$NN_Class = holdout_NN_pred
 
-test = subset( HoldOut_Original, RF_Class!=NN_Class )
-nrow(HoldOut_Original)
-View(test[,c(2,37,38)])
+HoldOut_Original$Ensemble_prod = (HoldOut_Original$RF_prob+HoldOut_Original$NN_Pred)/2
+HoldOut_Original$Class = ifelse(HoldOut_Original$Ensemble_prod>=0.3,1,0)
+
+table =addmargins(table(HoldOut_Original$Attrition,HoldOut_Original$Class)) # ~96.03
+table
+hold_Ensemble_acc = (table[1]+table[5])/table[9]
+hold_Ensemble_acc
+
