@@ -2,7 +2,7 @@
 ### CreatedOn   		: 05-sep-2017 
 ### Author      		: Ravindranadh 
 ### Location    		: GreatLakes Institute of Managment, Chennai
-### ProjectName 		:
+### ProjectName 		: 
 ### Latest Revision : V 1.0
 
 ### data set Reading
@@ -92,6 +92,7 @@ text(x = MissingCountPlot, y = Missing_Counts,
 axis(1, at=MissingCountPlot, labels=names(Missing_Counts), 
      tick=FALSE, las=2, line=-0.5, cex.axis=0.8)
 ### Correlation Analysis on Questions data
+Qdataset_no_missing=Qdataset[!apply(Qdataset, 1, function(x) any(x=="" | is.na(x))),] 
 Correlation=cor(Qdataset_no_missing)
 require(corrplot)
 require(RColorBrewer)
@@ -102,7 +103,6 @@ corrplot(Correlation, type="upper",
          outline = T)
 
 ### Factor Analysis on Non missing data set of 10 Questions
-Qdataset_no_missing=Qdataset[!apply(Qdataset, 1, function(x) any(x=="" | is.na(x))),] 
 require(psych)
 pca = principal(Qdataset_no_missing,nfactors = ncol(Qdataset_no_missing),rotate = 'none')
 pca
@@ -112,5 +112,20 @@ pca_reduced
 
 pca_rotated = principal(Qdataset_no_missing, nfactors = 1, rotate = 'varimax')
 pca_rotated
+
+### Missing Value handling - State
+Dataset_M = Dataset
+Dataset_M[which(Dataset_M$State == 'Chattisgarh'),'State'] = 'Chhattisgarh'
+Dataset_M[which(Dataset_M$State == 'Orissa'),'State'] = 'Odisha'
+Dataset_M[which(Dataset_M$State == 'W Bengal'),'State'] = 'West Bengal'
+Dataset_M[which(Dataset_M$State == 'TN'),'State'] = 'Tamil Nadu'
+
+States_Cities = read_excel(path = 'Cities_States.xlsx')
+States_Cities$`Name of City` = trimws(toupper(States_Cities$`Name of City`),which = 'both')
+States_Cities$State = trimws(toupper(States_Cities$State),which = 'both')
+
+Dataset_M$State = trimws(toupper(Dataset_M$State),which = 'both')
+Dataset_M$Location = trimws(toupper(Dataset_M$Location),which = 'both')
+
 
 
