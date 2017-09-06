@@ -5,7 +5,6 @@
 ### ProjectName 		:
 ### Latest Revision : V 1.0
 
-
 Missing_data_Check <- function(data_set){
   NA_Count = sapply(data_set,function(y) sum(length(which(is.na(y))))) 
   Null_Count = sapply(data_set,function(y) sum(length(which(is.null(y)))))
@@ -15,7 +14,7 @@ Missing_data_Check <- function(data_set){
   return( Total_NonData )
 }
 
-library(readxl)
+require(readxl)
 dataset = read_excel('Workingdata.xlsx')
 
 if(length(which(Missing_data_Check(dataset)>0))==0){
@@ -24,7 +23,7 @@ if(length(which(Missing_data_Check(dataset)>0))==0){
   Missing_data_Check(dataset)
 }
 
-AllQuestionsMissing = subset(dataset, is.na(dataset$`q3.1 - Understanding service needs and providing estimates for cost and repair time`) &
+missing_all = subset(dataset, is.na(dataset$`q3.1 - Understanding service needs and providing estimates for cost and repair time`) &
                is.na(dataset$`q3.2 - Providing you with a clear explanation of job done including tips for maintenance`)&
                is.na(dataset$`q3.3 - Education on the advantages of using genuine spares`)&
                is.na(dataset$`q3.4 - Actual time taken for delivery compared to the estimated repair time`)&
@@ -35,7 +34,7 @@ AllQuestionsMissing = subset(dataset, is.na(dataset$`q3.1 - Understanding servic
                is.na(dataset$`q6a - How satisfied are you with the work carried-out by Lucas Indian Service?`)&
                is.na(dataset$`q6b-Based on your experience how likely are you to recommend the workshop for maintenance and repair to others?`))
 
-AnyOneQuestionsMissing = subset(dataset, is.na(dataset$`q3.1 - Understanding service needs and providing estimates for cost and repair time`) |
+missing_anyone = subset(dataset, is.na(dataset$`q3.1 - Understanding service needs and providing estimates for cost and repair time`) |
                                is.na(dataset$`q3.2 - Providing you with a clear explanation of job done including tips for maintenance`)|
                                is.na(dataset$`q3.3 - Education on the advantages of using genuine spares`)|
                                is.na(dataset$`q3.4 - Actual time taken for delivery compared to the estimated repair time`)|
@@ -47,5 +46,33 @@ AnyOneQuestionsMissing = subset(dataset, is.na(dataset$`q3.1 - Understanding ser
                                is.na(dataset$`q6b-Based on your experience how likely are you to recommend the workshop for maintenance and repair to others?`))
 
 Qdataset = dataset[,18:27]
+names(Qdataset)
+
+for(i in 1:10){
+  dataset_name = paste('missing_',i%%11,sep='')
+  temp = subset(Qdataset, is.na(Qdataset[i%%11])&
+                  (!is.na(Qdataset[ifelse((i+1)%%10 == 0, 10 ,(i+1)%%10 )])&
+                  !is.na(Qdataset[ifelse((i+2)%%10 == 0, 10 ,(i+2)%%10 )])&
+                  !is.na(Qdataset[ifelse((i+3)%%10 == 0, 10 ,(i+3)%%10 )])&
+                  !is.na(Qdataset[ifelse((i+4)%%10 == 0, 10 ,(i+4)%%10 )])&
+                  !is.na(Qdataset[ifelse((i+5)%%10 == 0, 10 ,(i+5)%%10 )])&
+                  !is.na(Qdataset[ifelse((i+6)%%10 == 0, 10 ,(i+6)%%10 )])&
+                  !is.na(Qdataset[ifelse((i+7)%%10 == 0, 10 ,(i+7)%%10 )])&
+                  !is.na(Qdataset[ifelse((i+8)%%10 == 0, 10 ,(i+8)%%10 )])&
+                  !is.na(Qdataset[ifelse((i+9)%%10 == 0, 10 ,(i+9)%%10 )])))
+  assign(dataset_name, temp)
+}
+rm(temp)
+
+ms = Missing_data_Check(dataset)
+class(ms)
+
+require(ggplot2)
+plot(ms[18:27])
+
+
+
+
+
 
 
