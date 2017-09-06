@@ -5,6 +5,13 @@
 ### ProjectName 		:
 ### Latest Revision : V 1.0
 
+### data set Reading
+require(readxl)
+dataset = read_excel('Workingdata.xlsx')
+names(dataset)
+colnames(dataset) = c(colnames(dataset[,1:17]),'Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q8','Q9','Q10',colnames(dataset[,28]),'Remarks')
+
+### Missing value Analysis
 Missing_data_Check <- function(data_set){
   NA_Count = sapply(data_set,function(y) sum(length(which(is.na(y))))) 
   Null_Count = sapply(data_set,function(y) sum(length(which(is.null(y)))))
@@ -14,42 +21,48 @@ Missing_data_Check <- function(data_set){
   return( Total_NonData )
 }
 
-require(readxl)
-dataset = read_excel('Workingdata.xlsx')
+Missing_Values = Missing_data_Check(dataset)
+MissingValuesPlot = barplot(Missing_Values,col = 'gray',
+                            main ='Missing Values across all attributes',
+                            xlab = '',ylab = "Missing count",xaxt = 'n')
+text(x = MissingValuesPlot, y = Missing_Values,
+     label = Missing_Values,col = "red", cex = 0.8)
+axis(1, at=MissingValuesPlot, labels=names(Missing_Values), 
+     tick=FALSE, las=2, line=-0.5, cex.axis=0.5)
 
-if(length(which(Missing_data_Check(dataset)>0))==0){
-  print("No Missing data")
-}else{
-  Missing_data_Check(dataset)
-}
+MissingValuesPlotQ = barplot(Missing_Values[18:27],col = 'gray',
+                            main ='Missing responses for Questions',
+                            xlab = '',ylab = "Missing count",xaxt = 'n')
+text(x = MissingValuesPlotQ, y = Missing_Values[18:27],
+     label = Missing_Values[18:27],col = "red", cex = 0.8)
+axis(1, at=MissingValuesPlotQ, labels=names(Missing_Values[18:27]), 
+     tick=FALSE, las=2, line=-0.5, cex.axis=0.5)
 
-missing_all = subset(dataset, is.na(dataset$`q3.1 - Understanding service needs and providing estimates for cost and repair time`) &
-               is.na(dataset$`q3.2 - Providing you with a clear explanation of job done including tips for maintenance`)&
-               is.na(dataset$`q3.3 - Education on the advantages of using genuine spares`)&
-               is.na(dataset$`q3.4 - Actual time taken for delivery compared to the estimated repair time`)&
-               is.na(dataset$`q3.5 - Reasonableness of the costs charged for the job done`)&
-               is.na(dataset$`q4.1 - Your overall experience at the workshop`)&
-               is.na(dataset$`q4.2 - Courtesy provided to you by our service staff`)&
-               is.na(dataset$`q4.3 - Locational convenience, seating arrangement, facilities and general environment`)&
-               is.na(dataset$`q6a - How satisfied are you with the work carried-out by Lucas Indian Service?`)&
-               is.na(dataset$`q6b-Based on your experience how likely are you to recommend the workshop for maintenance and repair to others?`))
+missing_all = subset(dataset, is.na(dataset$Q1) &
+                       is.na(dataset$Q2)&
+                       is.na(dataset$Q3)&
+                       is.na(dataset$Q4)&
+                       is.na(dataset$Q5)&
+                       is.na(dataset$Q6)&
+                       is.na(dataset$Q7)&
+                       is.na(dataset$Q8)&
+                       is.na(dataset$Q9)&
+                       is.na(dataset$Q10))
 
-missing_anyone = subset(dataset, is.na(dataset$`q3.1 - Understanding service needs and providing estimates for cost and repair time`) |
-                               is.na(dataset$`q3.2 - Providing you with a clear explanation of job done including tips for maintenance`)|
-                               is.na(dataset$`q3.3 - Education on the advantages of using genuine spares`)|
-                               is.na(dataset$`q3.4 - Actual time taken for delivery compared to the estimated repair time`)|
-                               is.na(dataset$`q3.5 - Reasonableness of the costs charged for the job done`)|
-                               is.na(dataset$`q4.1 - Your overall experience at the workshop`)|
-                               is.na(dataset$`q4.2 - Courtesy provided to you by our service staff`)|
-                               is.na(dataset$`q4.3 - Locational convenience, seating arrangement, facilities and general environment`)|
-                               is.na(dataset$`q6a - How satisfied are you with the work carried-out by Lucas Indian Service?`)|
-                               is.na(dataset$`q6b-Based on your experience how likely are you to recommend the workshop for maintenance and repair to others?`))
+missing_anyone = subset(dataset, is.na(dataset$Q1) |
+                          is.na(dataset$Q2)|
+                          is.na(dataset$Q3)|
+                          is.na(dataset$Q4)|
+                          is.na(dataset$Q5)|
+                          is.na(dataset$Q6)|
+                          is.na(dataset$Q7)|
+                          is.na(dataset$Q8)|
+                          is.na(dataset$Q9)|
+                          is.na(dataset$Q10))
 
 Qdataset = dataset[,18:27]
-names(Qdataset)
-
 for(i in 1:10){
-  dataset_name = paste('missing_',i%%11,sep='')
+  dataset_name = paste('missing_Q',i%%11,sep='')
   temp = subset(Qdataset, is.na(Qdataset[i%%11])&
                   (!is.na(Qdataset[ifelse((i+1)%%10 == 0, 10 ,(i+1)%%10 )])&
                   !is.na(Qdataset[ifelse((i+2)%%10 == 0, 10 ,(i+2)%%10 )])&
@@ -64,15 +77,33 @@ for(i in 1:10){
 }
 rm(temp)
 
-ms = Missing_data_Check(dataset)
-class(ms)
-
-require(ggplot2)
-plot(ms[18:27])
-
-
-
+# names = c('missing_all','missing_anyone','missing_Q1','missing_Q2','missing_Q3',
+#           'missing_Q4','missing_Q5','missing_Q6','missing_Q7','missing_Q8',
+#           'missing_Q9','missing_Q10')
+# for(i in 1:12){
+#   j = nrow(noquote(names[i]))
+# }
 
 
+Qdataset_no_missing=Qdataset[!apply(Qdataset, 1, function(x) any(x=="" | is.na(x))),] 
+require(psych)
+colnames(Qdataset_no_missing) = c('Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q8','Q9','Q10')
+pca = principal(Qdataset_no_missing,nfactors = ncol(Qdataset_no_missing),rotate = 'none')
+pca
 
+pca_1 = principal(Qdataset_no_missing, nfactors = 1, rotate = 'none')
+pca_1
+
+pca_rotated = principal(Qdataset_no_missing, nfactors = 1, rotate = 'varimax')
+pca_rotated
+
+Correlation=cor(Qdataset_no_missing)
+
+require(corrplot)
+require(RColorBrewer)
+
+corrplot(Correlation, type="upper",
+         method = 'circle' ,order="hclust", add = F,
+         col=brewer.pal(n=4, name="RdBu"),  
+         outline = T)
 
