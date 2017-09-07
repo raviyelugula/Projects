@@ -127,5 +127,48 @@ States_Cities$State = trimws(toupper(States_Cities$State),which = 'both')
 Dataset_M$State = trimws(toupper(Dataset_M$State),which = 'both')
 Dataset_M$Location = trimws(toupper(Dataset_M$Location),which = 'both')
 
+### Missing location handling
+require(readxl)
+Locations_Assigned = read_excel(path = 'data/Cities_States.xlsx')
+excel_sheets(path = 'data/Workingdata.xlsx')
+Locations_Missed = read_excel(path = 'data/Workingdata.xlsx',sheet = 'Locations_Missed')
 
+Locations_Assigned$Location = tolower(trimws(Locations_Assigned$Location))
+Locations_Missed$Location = tolower(trimws(Locations_Missed$Location))
+
+a = vector()
+for(i in 1:nrow(Locations_Assigned)){
+  a[i] = stringdist(Locations_Missed[15,1],
+                    Locations_Assigned[i,]$Location,
+                    method = 'jw')  
+}
+
+Locations_Missed[15,1]
+Locations_Assigned[which(a %in% min(a)),]$Location
+min(a)
+
+DistanceNameMatrix<-matrix(NA, ncol = length(Locations_Missed$Location),
+                           nrow = length(Locations_Assigned$Location))
+for(i in 1:length(Locations_Missed$Location)) {
+  for(j in 1:length(Locations_Assigned$Location)) { 
+    DistanceNameMatrix[j,i]<-stringdist(tolower(Locations_Missed[i,]$Location),
+                                        tolower(Locations_Assigned[j,]$Location),
+                                        method ='jw')      
+  }
+}
+
+Match_Location_DF<-NULL
+MinName<-apply(DistanceNameMatrix, 1, base::min)
+for(i in 1:nrow(DistanceNameMatrix)){
+  S2<-match(MinName[i],DistanceNameMatrix[i,])
+  S1<-i
+  Match_Location_DF<-rbind(data.frame(S2=S2,S1=S1,
+                                      s2name=Locations_Missed[S2,]$Location, 
+                                      s1name=Locations_Assigned[S1,]$Location, 
+                                      adist=MinName[i],
+                                      method='jm'),
+                           Match_Location_DF)
+}
+View(Match_Location_DF)
+                                    
 
