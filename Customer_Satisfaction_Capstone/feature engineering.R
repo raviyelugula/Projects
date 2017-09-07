@@ -120,6 +120,11 @@ Dataset_M[which(Dataset_M$State == 'Orissa'),'State'] = 'Odisha'
 Dataset_M[which(Dataset_M$State == 'W Bengal'),'State'] = 'West Bengal'
 Dataset_M[which(Dataset_M$State == 'TN'),'State'] = 'Tamil Nadu'
 
+Dataset_M$State = tolower(trimws(Dataset_M$State))
+Dataset_M$`City-final` = tolower(trimws(Dataset_M$`City-final`))
+Dataset_M$City = tolower(trimws(Dataset_M$City))
+Dataset_M$Location = tolower(trimws(Dataset_M$Location))
+
 States_Cities = read_excel(path = 'Cities_States.xlsx')
 States_Cities$`Name of City` = trimws(toupper(States_Cities$`Name of City`),which = 'both')
 States_Cities$State = trimws(toupper(States_Cities$State),which = 'both')
@@ -131,22 +136,12 @@ Dataset_M$Location = trimws(toupper(Dataset_M$Location),which = 'both')
 require(readxl)
 Locations_Assigned = read_excel(path = 'data/Cities_States.xlsx')
 excel_sheets(path = 'data/Workingdata.xlsx')
-Locations_Missed = read_excel(path = 'data/Workingdata.xlsx',sheet = 'Locations_Missed')
+Locations_Missed = read_excel(path = 'data/Workingdata.xlsx',sheet = 'State_City_Missing')
 
 Locations_Assigned$Location = tolower(trimws(Locations_Assigned$Location))
 Locations_Missed$Location = tolower(trimws(Locations_Missed$Location))
 
-a = vector()
-for(i in 1:nrow(Locations_Assigned)){
-  a[i] = stringdist(Locations_Missed[15,1],
-                    Locations_Assigned[i,]$Location,
-                    method = 'jw')  
-}
-
-Locations_Missed[15,1]
-Locations_Assigned[which(a %in% min(a)),]$Location
-min(a)
-
+require(stringdist)
 DistanceNameMatrix<-matrix(NA, ncol = length(Locations_Missed$Location),
                            nrow = length(Locations_Assigned$Location))
 for(i in 1:length(Locations_Missed$Location)) {
@@ -162,13 +157,22 @@ MinName<-apply(DistanceNameMatrix, 1, base::min)
 for(i in 1:nrow(DistanceNameMatrix)){
   S2<-match(MinName[i],DistanceNameMatrix[i,])
   S1<-i
-  Match_Location_DF<-rbind(data.frame(S2=S2,S1=S1,
-                                      s2name=Locations_Missed[S2,]$Location, 
-                                      s1name=Locations_Assigned[S1,]$Location, 
+  Match_Location_DF<-rbind(data.frame(Missed_Id=S2,Assigned_Id=S1,
+                                      Missed=Locations_Missed[S2,]$Location, 
+                                      Assigned=Locations_Assigned[S1,]$Location, 
                                       adist=MinName[i],
                                       method='jm'),
                            Match_Location_DF)
 }
 View(Match_Location_DF)
-                                    
 
+Match_Location_DF = Match_Location_DF[Match_Location_DF$adist<=0.05,]   
+Match_Location_DF = Match_Location_DF[order(Match_Location_DF$Assigned_Id),]
+Match_Location_DF = Match_Location_DF[!duplicated(Match_Location_DF[,3:4]),] 
+
+Dataset_M3 = Dataset_M2
+for(i in 1:nrow(Match_Location_DF)){
+  temp_state = Locations_Assigned$State[i]
+  temp_location = as.character(Match_Location_DF$Missed[i])
+  Dataset_M = within(Dataset_M,State[Location == temp_location ] <- temp_state) 
+}

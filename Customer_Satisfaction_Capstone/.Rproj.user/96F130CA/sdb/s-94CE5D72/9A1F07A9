@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1504804137286.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "9A1F07A9",
+    "lastKnownWriteTime" : 32370120545140837,
+    "last_content_update" : 1504804137286,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "870E9220",
+        "caption" : "Match_Location_DF",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=Match_Location_DF&cache_key=870E9220",
+        "displayedObservations" : "1215",
+        "environment" : "",
+        "object" : "Match_Location_DF",
+        "preview" : "0",
+        "totalObservations" : "1215",
+        "variables" : "6"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
