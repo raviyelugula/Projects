@@ -31,8 +31,8 @@ axis(1, at=MissingValuesPlot, labels=names(Missing_Values),
      tick=FALSE, las=2, line=-0.5, cex.axis=0.5)
 
 MissingValuesPlotQ = barplot(Missing_Values[18:27],col = 'gray',
-                            main ='Missing responses for Questions',
-                            xlab = '',ylab = "Missing count",xaxt = 'n')
+                             main ='Missing responses for Questions',
+                             xlab = '',ylab = "Missing count",xaxt = 'n')
 text(x = MissingValuesPlotQ, y = Missing_Values[18:27],
      label = Missing_Values[18:27],col = "red", cex = 0.8)
 axis(1, at=MissingValuesPlotQ, labels=names(Missing_Values[18:27]), 
@@ -65,14 +65,14 @@ for(i in 1:10){
   dataset_name = paste('missing_Q',i%%11,sep='')
   temp = subset(Qdataset, is.na(Qdataset[i%%11])&
                   (!is.na(Qdataset[ifelse((i+1)%%10 == 0, 10 ,(i+1)%%10 )])&
-                  !is.na(Qdataset[ifelse((i+2)%%10 == 0, 10 ,(i+2)%%10 )])&
-                  !is.na(Qdataset[ifelse((i+3)%%10 == 0, 10 ,(i+3)%%10 )])&
-                  !is.na(Qdataset[ifelse((i+4)%%10 == 0, 10 ,(i+4)%%10 )])&
-                  !is.na(Qdataset[ifelse((i+5)%%10 == 0, 10 ,(i+5)%%10 )])&
-                  !is.na(Qdataset[ifelse((i+6)%%10 == 0, 10 ,(i+6)%%10 )])&
-                  !is.na(Qdataset[ifelse((i+7)%%10 == 0, 10 ,(i+7)%%10 )])&
-                  !is.na(Qdataset[ifelse((i+8)%%10 == 0, 10 ,(i+8)%%10 )])&
-                  !is.na(Qdataset[ifelse((i+9)%%10 == 0, 10 ,(i+9)%%10 )])))
+                     !is.na(Qdataset[ifelse((i+2)%%10 == 0, 10 ,(i+2)%%10 )])&
+                     !is.na(Qdataset[ifelse((i+3)%%10 == 0, 10 ,(i+3)%%10 )])&
+                     !is.na(Qdataset[ifelse((i+4)%%10 == 0, 10 ,(i+4)%%10 )])&
+                     !is.na(Qdataset[ifelse((i+5)%%10 == 0, 10 ,(i+5)%%10 )])&
+                     !is.na(Qdataset[ifelse((i+6)%%10 == 0, 10 ,(i+6)%%10 )])&
+                     !is.na(Qdataset[ifelse((i+7)%%10 == 0, 10 ,(i+7)%%10 )])&
+                     !is.na(Qdataset[ifelse((i+8)%%10 == 0, 10 ,(i+8)%%10 )])&
+                     !is.na(Qdataset[ifelse((i+9)%%10 == 0, 10 ,(i+9)%%10 )])))
   assign(dataset_name, temp)
 }
 rm(temp)
@@ -85,12 +85,13 @@ Missing_Counts = c(nrow(missing_all),nrow(missing_anyone),nrow(missing_Q1),nrow(
                    nrow(missing_Q9),nrow(missing_Q10))
 names(Missing_Counts) = Names
 MissingCountPlot = barplot(Missing_Counts,col = 'gray',
-                            main ='Missing Value trend',
-                            xlab = '',ylab = "Missing count",xaxt = 'n')
+                           main ='Missing Value trend',
+                           xlab = '',ylab = "Missing count",xaxt = 'n')
 text(x = MissingCountPlot, y = Missing_Counts,
      label = Missing_Counts,col = "red", cex = 0.8,font = 2)
 axis(1, at=MissingCountPlot, labels=names(Missing_Counts), 
      tick=FALSE, las=2, line=-0.5, cex.axis=0.8)
+
 ### Correlation Analysis on Questions data
 Qdataset_no_missing=Qdataset[!apply(Qdataset, 1, function(x) any(x=="" | is.na(x))),] 
 Correlation=cor(Qdataset_no_missing)
@@ -101,6 +102,7 @@ corrplot(Correlation, type="upper",
          method = 'circle' ,order="hclust", add = F,
          col=brewer.pal(n=4, name="RdBu"),  
          outline = T)
+rm(list = Names)
 
 ### Factor Analysis on Non missing data set of 10 Questions
 require(psych)
@@ -113,6 +115,7 @@ pca_reduced
 pca_rotated = principal(Qdataset_no_missing, nfactors = 1, rotate = 'varimax')
 pca_rotated
 
+rm(Correlation)
 ### Missing Value handling - State
 Dataset_M = Dataset
 Dataset_M[which(Dataset_M$State == 'Chattisgarh'),'State'] = 'Chhattisgarh'
@@ -126,13 +129,13 @@ Dataset_M$City = tolower(trimws(Dataset_M$City))
 Dataset_M$Location = tolower(trimws(Dataset_M$Location))
 
 States_Cities = read_excel(path = 'Cities_States.xlsx')
-States_Cities$`Name of City` = trimws(toupper(States_Cities$`Name of City`),which = 'both')
-States_Cities$State = trimws(toupper(States_Cities$State),which = 'both')
+States_Cities$`Name of City` = trimws(tolower(States_Cities$`Name of City`),which = 'both')
+States_Cities$State = trimws(tolower(States_Cities$State),which = 'both')
 
-Dataset_M$State = trimws(toupper(Dataset_M$State),which = 'both')
-Dataset_M$Location = trimws(toupper(Dataset_M$Location),which = 'both')
+Dataset_M$State = trimws(tolower(Dataset_M$State),which = 'both')
+Dataset_M$Location = trimws(tolower(Dataset_M$Location),which = 'both')
 
-### Missing location handling
+### Missing States handling with the help of location
 require(readxl)
 Locations_Assigned = read_excel(path = 'data/Cities_States.xlsx')
 excel_sheets(path = 'data/Workingdata.xlsx')
@@ -170,9 +173,56 @@ Match_Location_DF = Match_Location_DF[Match_Location_DF$adist<=0.05,]
 Match_Location_DF = Match_Location_DF[order(Match_Location_DF$Assigned_Id),]
 Match_Location_DF = Match_Location_DF[!duplicated(Match_Location_DF[,3:4]),] 
 
-Dataset_M3 = Dataset_M2
 for(i in 1:nrow(Match_Location_DF)){
-  temp_state = Locations_Assigned$State[i]
+  temp_Assigned_Id = Match_Location_DF$Assigned_Id[i]
+  temp_state = Locations_Assigned$State[temp_Assigned_Id]
   temp_location = as.character(Match_Location_DF$Missed[i])
   Dataset_M = within(Dataset_M,State[Location == temp_location ] <- temp_state) 
+}  ### 4546 state are mapped !!!
+
+write.csv(Dataset_M,'test.csv')
+
+### Missing States handling with the help of Cities
+excel_sheets(path = 'data/Workingdata.xlsx')
+Cities_Missed = read_excel(path = 'data/Workingdata.xlsx',sheet = 'State_Missing_CityDetails')
+
+Locations_Assigned$Location = tolower(trimws(Locations_Assigned$Location))
+Cities_Missed$City = tolower(trimws(Cities_Missed$City))
+
+DistanceNameMatrix<-matrix(NA, ncol = length(Cities_Missed$City),
+                           nrow = length(Locations_Assigned$Location))
+for(i in 1:length(Cities_Missed$City)) {
+  for(j in 1:length(Locations_Assigned$Location)) { 
+    DistanceNameMatrix[j,i]<-stringdist(tolower(Cities_Missed[i,]$City),
+                                        tolower(Locations_Assigned[j,]$Location),
+                                        method ='jw')      
+  }
 }
+
+Match_Location_DF<-NULL
+MinName<-apply(DistanceNameMatrix, 1, base::min)
+for(i in 1:nrow(DistanceNameMatrix)){
+  S2<-match(MinName[i],DistanceNameMatrix[i,])
+  S1<-i
+  Match_Location_DF<-rbind(data.frame(Missed_Id=S2,Assigned_Id=S1,
+                                      Missed=Cities_Missed[S2,]$City, 
+                                      Assigned=Locations_Assigned[S1,]$Location, 
+                                      adist=MinName[i],
+                                      method='jm'),
+                           Match_Location_DF)
+}
+View(Match_Location_DF)
+backup_Match_Location_DF = Match_Location_DF
+
+Match_Location_DF = Match_Location_DF[Match_Location_DF$adist==0,]   
+Match_Location_DF = Match_Location_DF[order(Match_Location_DF$Assigned_Id),]
+Match_Location_DF = Match_Location_DF[!duplicated(Match_Location_DF[,3:4]),] 
+
+for(i in 1:nrow(Match_Location_DF)){
+  temp_Assigned_Id = Match_Location_DF$Assigned_Id[i]
+  temp_state = Locations_Assigned$State[temp_Assigned_Id]
+  temp_location = as.character(Match_Location_DF$Missed[i])
+  Dataset_M = within(Dataset_M,State[Location == temp_location ] <- temp_state) 
+}  ### 3257 state are mapped !!!
+
+
