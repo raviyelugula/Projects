@@ -225,4 +225,17 @@ for(i in 1:nrow(Match_Location_DF)){
   Dataset_M = within(Dataset_M,State[Location == temp_location ] <- temp_state) 
 }  ### 3257 state are mapped !!!
 
+### should work on -- Planner group and State relation
+length(unique(Dataset_M$`Planner Group code`))
+require(dplyr)
+Planner_State_count=Dataset_M %>%
+  group_by(Dataset_M$`Planner Group code`) %>%
+  summarise(ifelse(sum(is.na(State))>0,n_distinct(State)-1,n_distinct(State)))
+Planner_State_count = as.data.frame(Planner_State_count)
+colnames(Planner_State_count) = c('PlannerGroupCode','State_Count')
+Planner_State_count
 
+Planner_State_count2=Dataset_M %>%select(`Planner Group code`,State)
+  group_by(Dataset_M$`Planner Group code`) 
+
+write.csv(Dataset_M,'tedt.csv')
