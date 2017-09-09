@@ -226,6 +226,7 @@ for(i in 1:nrow(Match_Location_DF)){
 }  ### 3257 state are mapped !!!
 
 ### should work on -- Planner group and State relation
+                                    
 length(unique(Dataset_M$`Planner Group code`))
 require(dplyr)
 Planner_State_count=Dataset_M %>%
