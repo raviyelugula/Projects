@@ -61,6 +61,7 @@ missing_anyone = subset(Dataset, is.na(Dataset$Q1) |
                           is.na(Dataset$Q10))
 
 Qdataset = Dataset[,18:27]
+Pdataset = Dataset[,c(1,18:28)]
 for(i in 1:10){
   dataset_name = paste('missing_Q',i%%11,sep='')
   temp = subset(Qdataset, is.na(Qdataset[i%%11])&
@@ -94,6 +95,8 @@ axis(1, at=MissingCountPlot, labels=names(Missing_Counts),
 
 ### Correlation Analysis on Questions data
 Qdataset_no_missing=Qdataset[!apply(Qdataset, 1, function(x) any(x=="" | is.na(x))),] 
+Pdataset_no_missing=Pdataset[!apply(Pdataset, 1, function(x) any(x=="" | is.na(x))),] 
+
 Correlation=cor(Qdataset_no_missing)
 require(corrplot)
 require(RColorBrewer)
@@ -106,16 +109,35 @@ rm(list = Names)
 
 ### Factor Analysis on Non missing data set of 10 Questions
 require(psych)
-pca = principal(Qdataset_no_missing,nfactors = ncol(Qdataset_no_missing),rotate = 'none')
+# pca = principal(Qdataset_no_missing,nfactors = ncol(Qdataset_no_missing),rotate = 'none')
+# pca
+# 
+# pca_reduced = principal(Qdataset_no_missing, nfactors = 6, rotate = 'none')
+# pca_reduced
+# 
+# pca_rotated = principal(Qdataset_no_missing, nfactors = 6, rotate = 'varimax')
+# pca_rotated
+
+pca = principal(Pdataset_no_missing[,2:11],nfactors = 10,rotate = 'none')
 pca
 
-pca_reduced = principal(Qdataset_no_missing, nfactors = 1, rotate = 'none')
+pca_reduced = principal(Pdataset_no_missing[,2:11], nfactors = 6, rotate = 'none')
 pca_reduced
 
-pca_rotated = principal(Qdataset_no_missing, nfactors = 1, rotate = 'varimax')
+pca_rotated = principal(Pdataset_no_missing[,2:11], nfactors = 6, rotate = 'varimax')
 pca_rotated
 
 rm(Correlation)
+Pdataset_no_missing_scaled = scale(Pdataset_no_missing[,2:12])
+Pdataset_no_missing_master = cbind(Pdataset_no_missing,pca_rotated$scores,
+                                   Scaled_Satindex=Pdataset_no_missing_scaled[,11])
+
+n = names(Pdataset_no_missing_master[13:18])
+formula = as.formula(paste("Scaled_Satindex ~", paste(n, collapse = " + ")))
+Linear_regression = lm(formula,
+                data = Pdataset_no_missing_master)
+summary(Linear_regression)
+
 ### Missing Value handling - State
 Dataset_M = Dataset
 Dataset_M[which(Dataset_M$State == 'Chattisgarh'),'State'] = 'Chhattisgarh'
@@ -226,7 +248,7 @@ for(i in 1:nrow(Match_Location_DF)){
 }  ### 3257 state are mapped !!!
 
 ### should work on -- Planner group and State relation
-                                    
+
 length(unique(Dataset_M$`Planner Group code`))
 require(dplyr)
 Planner_State_count=Dataset_M %>%
@@ -237,6 +259,6 @@ colnames(Planner_State_count) = c('PlannerGroupCode','State_Count')
 Planner_State_count
 
 Planner_State_count2=Dataset_M %>%select(`Planner Group code`,State)
-  group_by(Dataset_M$`Planner Group code`) 
+group_by(Dataset_M$`Planner Group code`) 
 
 write.csv(Dataset_M,'tedt.csv')
