@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "if (Sys.getenv(\"JAVA_HOME\")!=\"\") Sys.setenv(JAVA_HOME=\"\")\n\nrequire(twitteR)\nsetup_twitter_oauth(\n  consumer_key = \"MTfL0uv6oBbtVBa3dPuR4PS51\",\n  consumer_secret = \"T480vrOtvSK1XxGcPp20SdRoW99by3EGVvAapzyq8io0uH6lUh\",\n  access_token = \"191958252-uOisKMkvWHWmiTRQnf9d6XMww5wtZVtox1ShcjMm\",\n  access_secret = \"9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0\")\ngetCurRateLimitInfo(resources='search')\n\nThursdayThoughts= searchTwitter(searchString ='#ThursdayThoughts',\n                              n=2000 , lang = 'en') \n# last ran at 8:08 PM 14-Sep-2017\nThursdayThoughts_RT_Removed = strip_retweets(ThursdayThoughts,\n                                             strip_manual = T,\n                                             strip_mt = T)\nTT_dataframe = twListToDF(ThursdayThoughts)\nwrite.csv(TT_dataframe,'TT_dataframe.csv')\nTweets = TT_dataframe$text\n\nrequire(tm)\nTweets_Corpus = Corpus(VectorSource(Tweets))\n\nremoveUsernameInRT <- function(x) str_replace_all(x,\"(?<=@)[^\\\\s:]+\",'')\nTweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeUsernameInRT))\n\nremoveURL <- function(x) gsub(\"http[^[:space:]]*\", \"\", x)\nTweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeURL))\n\nremoveCompleteNumbers <- function(x) str_replace_all(x,'(?<=[:blank:])[0-9]+(?=[:blank:])', '')\nTweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeCompleteNumbers))\n\nTweets_Corpus = tm_map(Tweets_Corpus,removePunctuation)\nTweets_Corpus = tm_map(Tweets_Corpus, removeWords,c(stopwords('en'),'RT','ThursdayThoughts'))\n\nremoveSingle <- function(x) gsub(\" . \", \" \", x)   \nTweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeSingle))\nTweets_Corpus = tm_map(Tweets_Corpus,stripWhitespace)\nTweets_Corpus = tm_map(Tweets_Corpus,content_transformer(tolower))\n\nTweets_Corpus_Filtered = Tweets_Corpus\nTweets_Corpus<-tm_map(Tweets_Corpus, stemDocument,language = 'english')\nstemCompletionuserDefined <- function(x,dictionary) {\n  x = unlist(strsplit(as.character(x),\" \"))\n  x = x[x !=\"\"]\n  x = stemCompletion(x, dictionary = dictionary)\n  x = paste(x, sep=\"\", collapse=\" \")\n  PlainTextDocument(stripWhitespace(x))\n}\nTweets_Corpus = lapply(Tweets_Corpus, stemCompletionuserDefined, dictionary=Tweets_Corpus_Filtered)\nTweets_Corpus = Corpus(VectorSource(Tweets_Corpus))\nbackup_Tweets_Corpus = Tweets_Corpus\n\nTweets_Corpus_TDM = TermDocumentMatrix(Tweets_Corpus)\nTweets_Corpus_TDM_M = as.matrix(Tweets_Corpus_TDM)\ntermFrequency = rowSums(Tweets_Corpus_TDM_M)\ntermFrequency = sort(termFrequency,decreasing =T)\ntermFrequency[1:25]\nrequire(ggplot2)\n\nbarplot(termFrequency[1:25],\n        col='tan',las=2)\n\nrequire(qdap)\nfrequency = freq_terms(TT_dataframe$text,\n                       top = 25,\n                       at.least = 1000,\n                       stopwords =stopwords('english'))\n\n\n\n",
+    "created" : 1505395710317.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "897785588",
+    "id" : "66F00A83",
+    "lastKnownWriteTime" : 1505449763,
+    "last_content_update" : 1505449763808,
+    "path" : "~/GitHub/Projects/Twitter HashTag Analysis/Twitter_HashTag_Analysis.R",
+    "project_path" : "Twitter_HashTag_Analysis.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
