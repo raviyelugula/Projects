@@ -19,6 +19,7 @@ write.csv(TT_dataframe,'TT_dataframe.csv')
 
 # TT_dataframe = read.csv(file = 'Data.csv', header = T)
 # TT_dataframe = TT_dataframe[-1]
+# TT_dataframe = TT_dataframe[1:200,]
 Tweets = as.character(TT_dataframe$text)
 require(tm)
 Tweets_Corpus = Corpus(VectorSource(Tweets))
@@ -43,20 +44,32 @@ Tweets_Corpus = tm_map(Tweets_Corpus,content_transformer(tolower))
 Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(replace_abbreviation))
 
 Tweets_Corpus_Filtered = Tweets_Corpus
+# Tweets_Corpus = Tweets_Corpus_Filtered
 Tweets_Corpus<-tm_map(Tweets_Corpus, stemDocument,language = 'english')
-# stemCompletionuserDefined <- function(x,dictionary) {
-#   x = unlist(strsplit(as.character(x)," "))
-#   x = x[x !=""]
-#   x = stemCompletion(x, dictionary = dictionary)
-#   x = paste(x, sep="", collapse=" ")
-#   PlainTextDocument(stripWhitespace(x))
-# }
-# Tweets_Corpus = lapply(Tweets_Corpus, stemCompletionuserDefined, dictionary=Tweets_Corpus_Filtered)
-inspect(Tweets_Corpus[1:5])
-Tweets_Corpus <- tm_map(Tweets_Corpus, stemCompletion, dictionary=Tweets_Corpus_Filtered)
-inspect(Tweets_Corpus[1:5])
 
+
+stemCompletionuserDefined <- function(x,dictionary) {
+  x = unlist(strsplit(as.character(x)," "))
+  x = x[x !=""]
+  x = stemCompletion(x, dictionary = dictionary)
+  x = paste(x, sep="", collapse=" ")
+  PlainTextDocument(stripWhitespace(x))
+}
+Tweets_Corpus = lapply(Tweets_Corpus, stemCompletionuserDefined, dictionary=Tweets_Corpus_Filtered)
+# Tweets_Corpus = lapply(Tweets_Corpus, stemCompletion, dictionary=dictionary_corpus)
 Tweets_Corpus = Corpus(VectorSource(Tweets_Corpus))
+
+# inspect(Tweets_Corpus[1:5])
+Tweets_Corpus <- tm_map(Tweets_Corpus, stemCompletion, dictionary=dictionary_corpus)
+# inspect(Tweets_Corpus[1:5])
+
+# stemCompletion_mod <- function(x,dict=dictCorpus) {
+#   PlainTextDocument(stripWhitespace(paste(stemCompletion(unlist(strsplit(as.character(x)," ")),dictionary=dict, type="shortest"),sep="", collapse=" ")))
+# }
+# Tweets_Corpus = lapply(Tweets_Corpus, stemCompletion_mod, dictionary=Tweets_Corpus_Filtered)
+# Tweets_Corpus = Corpus(VectorSource(Tweets_Corpus))
+
+
 backup_Tweets_Corpus = Tweets_Corpus
 
 Tweets_Corpus_TDM = TermDocumentMatrix(Tweets_Corpus)
