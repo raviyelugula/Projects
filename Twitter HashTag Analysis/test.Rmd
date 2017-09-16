@@ -1,0 +1,49 @@
+---
+title: "Untitled"
+author: "Ravindranadh"
+date: "16 September 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+###2.Data Fetching
+* Define your twitter authentication details (this part of code is hidden)
+
+##5.Topic Modeling 
+Here we found to
+```{r echo=FALSE}
+  consumerkey = "MTfL0uv6oBbtVBa3dPuR4PS51"
+  consumersecret = "T480vrOtvSK1XxGcPp20SdRoW99by3EGVvAapzyq8io0uH6lUh"
+  accesstoken = "191958252-uOisKMkvWHWmiTRQnf9d6XMww5wtZVtox1ShcjMm"
+  accesssecret = "9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0"
+```
+* Establish a connect with twitter developer API by passing the authentication details to `setup_twitter_oauth` function.
+* Pull recent 2,500 tweets containing the hash tag **#ThursdayThoughts**.
+* Store the tweets in a dataframe and convert it to corpus.
+We focused on fetching the tweets with `#ThursdayThoughts` from twitter and analyse the sentiments.
+Following are the necesssary libraries that are needed.
+
+```{r cars,eval=FALSE}
+summary(cars)
+PepsiTweets =  searchTwitter(searchString ='Pepsi',
+                       n=10 , lang = 'en') 
+```
+* Establish a connect with twitter `developer` API by passing the authentication details to 'setup_twitter_oauth' function.
+* Pull recent 2,500 tweets containing the hash tag '#ThursdayThoughts'.
+* Store
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

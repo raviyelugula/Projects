@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "---\ntitle: \"Untitled\"\nauthor: \"Ravindranadh\"\ndate: \"16 September 2017\"\noutput: html_document\n---\n\n```{r setup, include=FALSE}\nknitr::opts_chunk$set(echo = TRUE)\n```\n\n## R Markdown\n\nThis is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.\n\n###2.Data Fetching\n* Define your twitter authentication details (this part of code is hidden)\n\n##5.Topic Modeling \nHere we found to\n```{r echo=FALSE}\n  consumerkey = \"MTfL0uv6oBbtVBa3dPuR4PS51\"\n  consumersecret = \"T480vrOtvSK1XxGcPp20SdRoW99by3EGVvAapzyq8io0uH6lUh\"\n  accesstoken = \"191958252-uOisKMkvWHWmiTRQnf9d6XMww5wtZVtox1ShcjMm\"\n  accesssecret = \"9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0\"\n```\n* Establish a connect with twitter developer API by passing the authentication details to `setup_twitter_oauth` function.\n* Pull recent 2,500 tweets containing the hash tag **#ThursdayThoughts**.\n* Store the tweets in a dataframe and convert it to corpus.\nWe focused on fetching the tweets with `#ThursdayThoughts` from twitter and analyse the sentiments.\nFollowing are the necesssary libraries that are needed.\n\n```{r cars,eval=FALSE}\nsummary(cars)\nPepsiTweets =  searchTwitter(searchString ='Pepsi',\n                       n=10 , lang = 'en') \n```\n* Establish a connect with twitter `developer` API by passing the authentication details to 'setup_twitter_oauth' function.\n* Pull recent 2,500 tweets containing the hash tag '#ThursdayThoughts'.\n* Store\n## Including Plots\n\nYou can also embed plots, for example:\n\n```{r pressure, echo=FALSE}\nplot(pressure)\n```\n\nNote that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.\n",
+    "created" : 1505518292829.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3782363653",
+    "id" : "AA118F3E",
+    "lastKnownWriteTime" : 1505546661,
+    "last_content_update" : 1505546661096,
+    "path" : "~/GitHub/Projects/Twitter HashTag Analysis/test.Rmd",
+    "project_path" : "test.Rmd",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
