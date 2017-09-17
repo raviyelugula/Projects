@@ -1,0 +1,218 @@
+---
+title: "Twitter Sentiment Analysis"
+author: "Group 10"
+date: "16 September 2017"
+output: html_document
+---
+
+###1.Introduction
+We focused on fetching the tweets with `#Nokia` from twitter and analyse the sentiments.
+
+Following are the necesssary libraries that are needed.
+```{r message=FALSE}
+if (Sys.getenv("JAVA_HOME")!="") Sys.setenv(JAVA_HOME="")
+require(twitteR)
+require(tm)
+require(stringr)
+require(qdap)
+require(ggplot2)
+require(wordcloud)
+require(topicmodels)
+require(tidytext)
+require(dplyr)
+require(plotrix)
+require(ggthemes)
+```
+
+###2.Data Fetching
+* Define your twitter authentication details (this part of code is hidden)
+```{r echo=FALSE}
+  consumerkey = "MTfL0uv6oBbtVBa3dPuR4PS51"
+  consumersecret = "T480vrOtvSK1XxGcPp20SdRoW99by3EGVvAapzyq8io0uH6lUh"
+  accesstoken = "191958252-uOisKMkvWHWmiTRQnf9d6XMww5wtZVtox1ShcjMm"
+  accesssecret = "9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0"
+```
+
+* Establish a connect with twitter developer API by passing the authentication details to `setup_twitter_oauth` function.
+* Pull recent 2,500 tweets containing the hash tag **#Nokia**.
+* Store the tweets in a dataframe and convert it to corpus.
+```{r message=FALSE, results='hide',warning=FALSE}
+setup_twitter_oauth(consumerkey,consumersecret,accesstoken,accesssecret)
+Nokia= searchTwitter(searchString ='#Nokia',
+                                n=2500 , lang = 'en') 
+TT_dataframe = twListToDF(Nokia)
+TT_dataframe$createdDate = as.Date(TT_dataframe$created,format = "%d-%m-%Y %H:%M")
+
+Tweets = as.character(TT_dataframe$text)
+Tweets_Corpus = Corpus(VectorSource(Tweets))
+```
+
+###3.Data Cleaning
+* The corpus is subjected to cleaning by removing the `usernames` that are followed by **@**,
+* `URLs` are removed.
+* `Pure Numbers` i.e like 54 but not iphone8 (aplha-numeric), are removed.
+* `Puctuations & whitespaces` are removed.
+* Entire text is converted into `lower case`.
+* `Abbrevations` are replaced.
+* All the words are subjected to `stemming`.
+* `Stopwords` are removed.
+```{r results='hide',message=FALSE}
+removeUsernameInRT <- function(x) str_replace_all(x,"(?<=@)[^\\s:]+",'')
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeUsernameInRT))
+
+removeURL <- function(x) gsub("http[^[:space:]]*", "", x)
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeURL))
+
+removeCompleteNumbers <- function(x) str_replace_all(x,'(?<=[:blank:])[0-9]+(?=[:blank:])', '')
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeCompleteNumbers))
+
+Tweets_Corpus = tm_map(Tweets_Corpus,removePunctuation)
+removeSingle <- function(x) gsub(" . ", " ", x)   
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeSingle))
+Tweets_Corpus = tm_map(Tweets_Corpus,stripWhitespace)
+Tweets_Corpus = tm_map(Tweets_Corpus,content_transformer(tolower))
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(replace_abbreviation))
+
+Tweets_Corpus_Filtered = Tweets_Corpus
+Tweets_Corpus<-tm_map(Tweets_Corpus, stemDocument,language = 'english')
+stemCompletionuserDefined <- function(x,dictionary) {
+  x = unlist(strsplit(as.character(x)," "))
+  x = x[x !=""]
+  x = stemCompletion(x, dictionary = dictionary)
+  x = paste(x, sep="", collapse=" ")
+  PlainTextDocument(stripWhitespace(x))
+}
+Tweets_Corpus = lapply(Tweets_Corpus, stemCompletionuserDefined, dictionary=Tweets_Corpus_Filtered)
+temp = character()
+for(i in 1: nrow(TT_dataframe)){
+  temp[i] = Tweets_Corpus[[i]]$content
+}
+temp_df = data.frame(text = temp, stringsAsFactors = F)
+Tweets_Corpus = Corpus(VectorSource(temp_df$text))
+Tweets_Corpus = tm_map(Tweets_Corpus, 
+                       removeWords,c(stopwords('en'),'rt','nokia','phone'))
+```
+
+###4.Word Frequency Analysis
+* Convert the corpus into `TermDocumentMatrix`.
+* Calculate the frequency count of each word and create a dataframe of words & their frequencies.
+```{r results='hide',message=FALSE}
+Tweets_Corpus_TDM = TermDocumentMatrix(Tweets_Corpus)
+Tweets_Corpus_TDM_M = as.matrix(Tweets_Corpus_TDM)
+termFrequency = rowSums(Tweets_Corpus_TDM_M)
+termFrequency = sort(termFrequency,decreasing =T)
+```
+
+Following is the chart displaying the most used 25 words and their frequencies.
+```{r}
+frequency_df <- data.frame(term = names(termFrequency), freq= termFrequency)
+ggplot(frequency_df[1:25,], aes(reorder(term, freq),freq)) +
+  geom_bar(stat = "identity",fill='#4482e5') + 
+  coord_flip() +
+  labs(list(title="Term Frequency Chart", x="Terms", y="Term Counts")) 
+```
+
+Following the sample spare matrix representing the words live & people present in the frst 50 tweets
+```{r}
+index <- which(dimnames(Tweets_Corpus_TDM)$Terms %in% c("android", "brand"))
+as.matrix(Tweets_Corpus_TDM[index,1:50])
+```
+
+Following is the word cloud consisting the most frequently used words
+```{r warning=FALSE}
+pal<- brewer.pal(4, "Dark2")
+wordcloud(words = names(termFrequency), 
+          freq = termFrequency, 
+          min.freq = 2, 
+          random.order = F, 
+          colors = pal, 
+          max.words = 250)
+```
+
+###5.Topic Modeling 
+Here we found top 5 discussed topics and their words
+```{r warning=FALSE}
+Nokia_Associations = findAssocs(Tweets_Corpus_TDM,terms ='android',corlimit=0.2)
+Nokia_Associations
+Nokia_Associations_df = list_vect2df(Nokia_Associations)[, 2:3]
+
+ggplot(Nokia_Associations_df, aes(y = Nokia_Associations_df[, 1])) + 
+  geom_point(aes(x = Nokia_Associations_df[, 2],colour = Nokia_Associations_df[, 2],
+                 size = Nokia_Associations_df[, 2] ), 
+             data = Nokia_Associations_df) + 
+  theme_gdocs()+
+  scale_color_continuous(high = '#18069A',low = "#8985A3")+
+  guides(colour=FALSE,size =F)+
+  xlab('Correlation')+ylab('Words')+ggtitle('Nokia tweets Association with "android" ')
+colnames(Nokia_Associations_df) = c('Words','Corr')
+qheat(Nokia_Associations_df, values=TRUE, high="blue",
+      digits=2, plot = FALSE) +
+  coord_flip()+guides(fill=F,ylab=F)+
+  xlab('Words')+ggtitle('Nokia tweets HeatMap with "android"')
+
+Nokia_Corpus_DTM <- as.DocumentTermMatrix(Tweets_Corpus_TDM)
+CrowTotals <- apply(Nokia_Corpus_DTM , 1, sum)
+CNullDocs <- Nokia_Corpus_DTM[CrowTotals==0, ]
+Nokia_Corpus_DTM   <- Nokia_Corpus_DTM[CrowTotals> 0, ]
+TT_dataframe = twListToDF(Nokia)
+if (length(CNullDocs$dimnames$Docs) > 0) {
+  TT_dataframe <- TT_dataframe[-as.numeric(CNullDocs$dimnames$Docs),]
+}
+Clda <- LDA(Nokia_Corpus_DTM, k = 5) 
+Cterm <- terms(Clda, 5) 
+Cterm
+Ctopics<- topics(Clda)
+Ctopics_df<- data.frame(date=(TT_dataframe$created), topic = Ctopics)
+X = cut(as.numeric(strftime(Ctopics_df$date, format="%H")),c(0,6,12,18,24))
+levels(X) = c('night','morning','noon','evening')
+qplot(X,..count.., data=Ctopics_df,
+      geom ="density",
+      fill= Cterm[topic],position="stack",
+      xlab = 'Tweets Time', ylab='Count',main = 'Nokia Topic Density')
+```
+
+###6.Sentiment Analysis 
+Here we tried to find the positive and negative sentiment words and various emotional sentiment words
+* Took the common words from `bing` lexicon to get the +ve or -ve sentiment details for each word.
+* Applied `afinn` lexicon on to the above result to get the sentiment scores for each word.
+```{r results='hide', warning=FALSE}
+colnames(frequency_df) = c('word','freq')
+sentiment_df = frequency_df %>% 
+  inner_join(get_sentiments('bing'), by='word')
+sentiment_df = sentiment_df %>%
+  inner_join(get_sentiments('afinn'),by='word') 
+```
+
+Following is the graph showing the top used words and their +/- Sentiment
+```{r}
+sentiment_df %>%
+  top_n(25,freq) %>%
+  mutate(x1 = reorder(word,freq),
+         y1 = ifelse(sentiment=='positive',freq,-freq)) %>%
+  ggplot(aes(x=x1, y= y1, fill = sentiment)) +
+  geom_col(stat='identity') +
+  coord_flip()+
+  facet_wrap(~sentiment, scales = "free_x")+
+  ggtitle('Lexicon based word frequency')+
+  xlab('Words')+ylab('Frequency')
+```
+
+Here we tried the same but with regards to various emotional sentiments
+```{r warning=FALSE}
+Emotion_sentiment_df = frequency_df %>% 
+  inner_join(get_sentiments('nrc'), by='word')
+Emotion_sentiment_df %>%
+  group_by(sentiment) %>%
+  top_n(7,freq) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, freq)) %>%
+  ggplot(aes(x = word, y = freq , fill  = sentiment)) +
+  scale_fill_brewer(palette="Spectral")+
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free") +
+  coord_flip()+
+  ggtitle('Emotion based word frequency')+
+  xlab('Words')+ylab('Frequency')
+```
+
+

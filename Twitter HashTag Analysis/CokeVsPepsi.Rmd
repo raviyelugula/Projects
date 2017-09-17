@@ -1,3 +1,15 @@
+---
+title: "Coke/Pepsi Twitter sentiment analysis"
+author: "Ravindranadh"
+date: "16 September 2017"
+output: html_document
+---
+
+###1.Introduction
+We focused on fetching the tweets with `coke` and `Pepsi` from twitter and analyse their sentiments.
+
+Following are the necesssary libraries that are needed.
+```{r message=FALSE,warning=FALSE}
 if (Sys.getenv("JAVA_HOME")!="") Sys.setenv(JAVA_HOME="")
 require(twitteR)
 require(tm)
@@ -10,15 +22,24 @@ require(tidytext)
 require(dplyr)
 require(plotrix)
 require(ggthemes)
-setup_twitter_oauth(
-  consumer_key = "MTfL0uv6oBbtVBa3dPuR4PS51",
-  consumer_secret = "T480vrOtvSK1XxGcPp20SdRoW99by3EGVvAapzyq8io0uH6lUh",
-  access_token = "191958252-uOisKMkvWHWmiTRQnf9d6XMww5wtZVtox1ShcjMm",
-  access_secret = "9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0")
-getCurRateLimitInfo(resources='search')
+```
 
-CocaCola_TweetsList= searchTwitter(searchString ='Coke',n=10000 , lang = 'en') 
-Pepsi_TweetsList= searchTwitter(searchString ='Pepsi',n=10000 , lang = 'en') 
+###2.Data Fetching
+* Define your twitter authentication details (this part of code is hidden)
+```{r echo=FALSE}
+  consumerkey = "MTfL0uv6oBbtVBa3dPuR4PS51"
+  consumersecret = "T480vrOtvSK1XxGcPp20SdRoW99by3EGVvAapzyq8io0uH6lUh"
+  accesstoken = "191958252-uOisKMkvWHWmiTRQnf9d6XMww5wtZVtox1ShcjMm"
+  accesssecret = "9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0"
+```
+
+* Establish a connect with twitter developer API by passing the authentication details to `setup_twitter_oauth` function.
+* Pull recent 2,500 tweets of each search
+* Store the tweets in a dataframe and convert it to corpus.
+```{r message=FALSE, results='hide',warning=FALSE}
+setup_twitter_oauth(consumerkey,consumersecret,accesstoken,accesssecret)
+CocaCola_TweetsList= searchTwitter(searchString ='Coke',n=5000 , lang = 'en') 
+Pepsi_TweetsList= searchTwitter(searchString ='Pepsi',n=5000 , lang = 'en') 
 
 CocaCola_DF = twListToDF(CocaCola_TweetsList)
 Pepsi_DF = twListToDF(Pepsi_TweetsList)
@@ -31,7 +52,18 @@ CocaCola_Corpus = Corpus(VectorSource(CocaCola_Tweets))
 
 Pepsi_Tweets = as.character(Pepsi_DF$text)
 Pepsi_Corpus = Corpus(VectorSource(Pepsi_Tweets))
+```
 
+###3.Data Cleaning
+* The corpus is subjected to cleaning by removing the `usernames` that are followed by **@**,
+* `URLs` are removed.
+* `Pure Numbers` i.e like 54 but not iphone8 (aplha-numeric), are removed.
+* `Puctuations & whitespaces` are removed.
+* Entire text is converted into `lower case`.
+* `Abbrevations` are replaced.
+* All the words are subjected to `stemming`.
+* `Stopwords` are removed.
+```{r results='hide',message=FALSE,warning=FALSE}
 removeUsernameInRT <- function(x) str_replace_all(x,"(?<=@)[^\\s:]+",'')
 CocaCola_Corpus = tm_map(CocaCola_Corpus, content_transformer(removeUsernameInRT))
 Pepsi_Corpus = tm_map(Pepsi_Corpus, content_transformer(removeUsernameInRT))
@@ -58,6 +90,7 @@ Pepsi_Corpus = tm_map(Pepsi_Corpus, content_transformer(replace_abbreviation))
 
 CocaCola_Corpus_Filtered = CocaCola_Corpus
 CocaCola_Corpus = tm_map(CocaCola_Corpus, stemDocument,language = 'english')
+
 Pepsi_Corpus_Filtered = Pepsi_Corpus
 Pepsi_Corpus = tm_map(Pepsi_Corpus, stemDocument,language = 'english')
 
@@ -88,7 +121,12 @@ Pepsi_Corpus = Corpus(VectorSource(temp_df1$text))
 Pepsi_Corpus = tm_map(Pepsi_Corpus, 
                          removeWords,c(stopwords('en'),'rt','pepsi','drink','jimin'))
 rm(list = c('temp1','temp_df1','temp_df','temp'))
+```
 
+###4.Word Frequency Analysis
+* Convert the corpus into `TermDocumentMatrix`.
+* Calculate the frequency count of each word and create a dataframe of words & their frequencies.
+```{r results='hide',message=FALSE,warning=FALSE}
 CocaCola_Corpus_TDM = TermDocumentMatrix(CocaCola_Corpus)
 CocaCola_Corpus_TDM_M = as.matrix(CocaCola_Corpus_TDM)
 CocaCola_TermFrequency = rowSums(CocaCola_Corpus_TDM_M)
@@ -104,6 +142,10 @@ Frequency_DF = data.frame(term = names(CocaCola_TermFrequency),
 Frequency_DF = rbind(Frequency_DF,data.frame(term = names(Pepsi_TermFrequency), 
                                              freq= Pepsi_TermFrequency,
                                              brand = 'Pepsi') )
+```
+
+Following is the chart displaying the most used 25 words and their frequencies.
+```{r}
 Frequency_DF %>%
   top_n(25,freq) %>%
 ggplot(aes(reorder(term, freq),freq,fill= brand)) +
@@ -111,12 +153,18 @@ ggplot(aes(reorder(term, freq),freq,fill= brand)) +
   geom_bar(stat = "identity") + 
   coord_flip() +
   labs(list(title="Term Frequency Chart", x="Top 25 Terms", y="Term Counts")) 
+```
 
-index = which(dimnames(CocaCola_Corpus_TDM)$Terms %in% c("cokezerosugar", "chance"))
+Following the sample spare matrix representing the words live & people present in the frst few tweets
+```{r}
+index = which(dimnames(CocaCola_Corpus_TDM)$Terms %in% c("healthier", "dont"))
 as.matrix(CocaCola_Corpus_TDM[index,1:50])
 index = which(dimnames(Pepsi_Corpus_TDM)$Terms %in% c("best",'coke'))
 as.matrix(Pepsi_Corpus_TDM[index,1:50])
+```
 
+Following is the word cloud consisting the most frequently used words
+```{r warning=FALSE}
 pal = brewer.pal(6, "Reds")
 pal = pal[2:6]
 wordcloud(words = names(CocaCola_TermFrequency), 
@@ -133,11 +181,21 @@ wordcloud(words = names(Pepsi_TermFrequency),
           random.order = F, 
           colors = pal, 
           max.words = 500)
+```
 
+###5.Word Associations
+Here we tried to find associations of Pepsi tweets with the word `best` and cocacola tweets with `dont`.
+```{r results= 'hide', warning=FALSE,message=FALSE}
 Pepsi_Associations = findAssocs(Pepsi_Corpus_TDM,terms ='best',corlimit=0.05)
 Pepsi_Associations
 Pepsi_Associations_df = list_vect2df(Pepsi_Associations)[, 2:3]
+CocaCola_Associations = findAssocs(CocaCola_Corpus_TDM,terms ='dont',corlimit=0.2)
+CocaCola_Associations
+CocaCola_Associations_df = list_vect2df(CocaCola_Associations)[, 2:3]
+```
 
+Following are the various maps showing the correlation between the choosen word and all the tweets of repective search.
+```{r warning=FALSE,error=FALSE}
 ggplot(Pepsi_Associations_df, aes(y = Pepsi_Associations_df[, 1])) + 
   geom_point(aes(x = Pepsi_Associations_df[, 2],colour = Pepsi_Associations_df[, 2],
                  size = Pepsi_Associations_df[, 2] ), 
@@ -151,12 +209,6 @@ qheat(Pepsi_Associations_df, values=TRUE, high="blue",
       digits=2, plot = FALSE) +
   coord_flip()+guides(fill=F,ylab=F)+
   xlab('Words')+ggtitle('Pepsi tweets HeatMap with "BEST"')
-
-
-CocaCola_Associations = findAssocs(CocaCola_Corpus_TDM,terms ='chance',corlimit=0.2)
-CocaCola_Associations
-CocaCola_Associations_df = list_vect2df(CocaCola_Associations)[, 2:3]
-
 ggplot(CocaCola_Associations_df, aes(y = CocaCola_Associations_df[, 1])) + 
   geom_point(aes(x = CocaCola_Associations_df[, 2],colour = CocaCola_Associations_df[, 2],
                  size = CocaCola_Associations_df[, 2] ), 
@@ -164,14 +216,17 @@ ggplot(CocaCola_Associations_df, aes(y = CocaCola_Associations_df[, 1])) +
   theme_gdocs()+
   scale_color_continuous(high = '#C40315',low = "#DE6C76")+
   guides(colour=FALSE,size =F)+
-  xlab('Correlation')+ylab('Words')+ggtitle('CocaCola tweets Association with "chance" ')
+  xlab('Correlation')+ylab('Words')+ggtitle('CocaCola tweets Association with "dont" ')
 colnames(CocaCola_Associations_df) = c('Words','Corr')
 qheat(CocaCola_Associations_df, values=TRUE, high="red",
       digits=2, plot = FALSE) +
   coord_flip()+guides(fill=F,ylab=F)+
-  xlab('Words')+ggtitle('CocaCola tweets HeatMap with "chance"')
+  xlab('Words')+ggtitle('CocaCola tweets HeatMap with "dont"')
+```
 
-
+###6.Topic Modeling 
+Here we found top 5 discussed topics and their words
+```{r warning=FALSE,error=FALSE}
 CocaCola_Corpus_DTM <- as.DocumentTermMatrix(CocaCola_Corpus_TDM)
 CrowTotals <- apply(CocaCola_Corpus_DTM , 1, sum)
 CNullDocs <- CocaCola_Corpus_DTM[CrowTotals==0, ]
@@ -209,14 +264,22 @@ qplot(X,..count.., data=Ptopics_df,
       geom ="density",
       fill= Pterm[topic],position="stack",
       xlab = 'Tweets Time', ylab='Count',main = 'Pepsi Topic Density')
+```
 
-
+###7.Sentiment Analysis 
+Here we tried to find the positive and negative sentiment words and various emotional sentiment words
+* Took the common words from `bing` lexicon to get the +ve or -ve sentiment details for each word.
+* Applied `afinn` lexicon on to the above result to get the sentiment scores for each word.
+```{r results='hide', warning=FALSE}
 colnames(Frequency_DF) = c('word','freq','brand')
 sentiment_df = Frequency_DF %>% 
   inner_join(get_sentiments('bing'), by='word')
 sentiment_df = sentiment_df %>%
   inner_join(get_sentiments('afinn'),by='word') 
+```
 
+Following is the graph showing the top used words and their +/- Sentiment
+```{r warning=FALSE,error=FALSE}
 sentiment_df %>%
   top_n(25,freq) %>%
   mutate(x1 = reorder(word,freq),
@@ -228,7 +291,10 @@ sentiment_df %>%
   facet_wrap(~sentiment, scales = "free_x")+
   ggtitle('Lexicon based word frequency')+
   xlab('Words')+ylab('Frequency')
+```
 
+Here we tried the same but with regards to various emotional sentiments
+```{r warning=FALSE,error=FALSE}
 Emotion_sentiment_df = Frequency_DF %>% 
   inner_join(get_sentiments('nrc'), by='word')
 Emotion_sentiment_df %>%
@@ -244,6 +310,4 @@ Emotion_sentiment_df %>%
   ggtitle('Emotion based word frequency')+
   xlab('Words')+ylab('Frequency')
 
-
-
-
+```
