@@ -1,0 +1,161 @@
+
+if (Sys.getenv("JAVA_HOME")!="") Sys.setenv(JAVA_HOME="")
+require(twitteR)
+require(tm)
+require(stringr)
+require(qdap)
+require(ggplot2)
+require(wordcloud)
+require(topicmodels)
+require(tidytext)
+require(dplyr)
+require(plotrix)
+require(ggthemes)
+
+consumersecret = "T480vrOtvSK1XxGcPp20SdRoW99by3EGVvAapzyq8io0uH6lUh"
+accesstoken = "191958252-uOisKMkvWHWmiTRQnf9d6XMww5wtZVtox1ShcjMm"
+accesssecret = "9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0"
+consumerkey = "MTfL0uv6oBbtVBa3dPuR4PS51"
+
+setup_twitter_oauth(consumerkey,consumersecret,accesstoken,accesssecret)
+Nokia= searchTwitter(searchString ='Nokia',
+                     n=2500 , lang = 'en') 
+TT_dataframe = twListToDF(Nokia)
+TT_dataframe$createdDate = as.Date(TT_dataframe$created,format = "%d-%m-%Y %H:%M")
+
+Tweets = as.character(TT_dataframe$text)
+Tweets_Corpus = Corpus(VectorSource(Tweets))
+removeUsernameInRT <- function(x) str_replace_all(x,"(?<=@)[^\\s:]+",'')
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeUsernameInRT))
+
+removeURL <- function(x) gsub("http[^[:space:]]*", "", x)
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeURL))
+
+removeCompleteNumbers <- function(x) str_replace_all(x,'(?<=[:blank:])[0-9]+(?=[:blank:])', '')
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeCompleteNumbers))
+
+Tweets_Corpus = tm_map(Tweets_Corpus,removePunctuation)
+removeSingle <- function(x) gsub(" . ", " ", x)   
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(removeSingle))
+Tweets_Corpus = tm_map(Tweets_Corpus,stripWhitespace)
+Tweets_Corpus = tm_map(Tweets_Corpus,content_transformer(tolower))
+Tweets_Corpus = tm_map(Tweets_Corpus, content_transformer(replace_abbreviation))
+
+Tweets_Corpus_Filtered = Tweets_Corpus
+Tweets_Corpus<-tm_map(Tweets_Corpus, stemDocument,language = 'english')
+stemCompletionuserDefined <- function(x,dictionary) {
+  x = unlist(strsplit(as.character(x)," "))
+  x = x[x !=""]
+  x = stemCompletion(x, dictionary = dictionary)
+  x = paste(x, sep="", collapse=" ")
+  PlainTextDocument(stripWhitespace(x))
+}
+Tweets_Corpus = lapply(Tweets_Corpus, stemCompletionuserDefined, dictionary=Tweets_Corpus_Filtered)
+temp = character()
+for(i in 1: nrow(TT_dataframe)){
+  temp[i] = Tweets_Corpus[[i]]$content
+}
+temp_df = data.frame(text = temp, stringsAsFactors = F)
+Tweets_Corpus = Corpus(VectorSource(temp_df$text))
+Tweets_Corpus = tm_map(Tweets_Corpus, 
+                       removeWords,c(stopwords('en'),'rt','nokia','phone'))
+Tweets_Corpus_TDM = TermDocumentMatrix(Tweets_Corpus)
+Tweets_Corpus_TDM_M = as.matrix(Tweets_Corpus_TDM)
+termFrequency = rowSums(Tweets_Corpus_TDM_M)
+termFrequency = sort(termFrequency,decreasing =T)
+frequency_df <- data.frame(term = names(termFrequency), freq= termFrequency)
+ggplot(frequency_df[1:25,], aes(reorder(term, freq),freq)) +
+  geom_bar(stat = "identity",fill='#4482e5') + 
+  coord_flip() +
+  labs(list(title="Term Frequency Chart", x="Terms", y="Term Counts")) 
+index <- which(dimnames(Tweets_Corpus_TDM)$Terms %in% c("fun", "brand"))
+as.matrix(Tweets_Corpus_TDM[index,1:50])
+pal<- brewer.pal(4, "Dark2")
+wordcloud(words = names(termFrequency), 
+          freq = termFrequency, 
+          min.freq = 2, 
+          random.order = F, 
+          colors = pal, 
+          max.words = 250)
+Tweets_Corpus_DTM <- as.DocumentTermMatrix(Tweets_Corpus_TDM)
+rowTotals <- apply(Tweets_Corpus_DTM , 1, sum)
+NullDocs <- Tweets_Corpus_DTM[rowTotals==0, ]
+Tweets_Corpus_DTM   <- Tweets_Corpus_DTM[rowTotals> 0, ]
+if (length(NullDocs$dimnames$Docs) > 0) {
+  TT_dataframe <- TT_dataframe[-as.numeric(NullDocs$dimnames$Docs),]
+}
+lda <- LDA(Tweets_Corpus_DTM, k = 5) 
+term <- terms(lda, 5) 
+term
+topics<- topics(lda)
+topics_df<- data.frame(date=(TT_dataframe$created), topic = topics)
+qplot(date, ..count.., data=topics_df,
+      geom ="density",
+      fill= term[topic],position="stack")
+colnames(frequency_df) = c('word','freq')
+sentiment_df = frequency_df %>% 
+  inner_join(get_sentiments('bing'), by='word')
+sentiment_df = sentiment_df %>%
+  inner_join(get_sentiments('afinn'),by='word') 
+sentiment_df %>%
+  top_n(25,freq) %>%
+  mutate(x1 = reorder(word,freq),
+         y1 = ifelse(sentiment=='positive',freq,-freq)) %>%
+  ggplot(aes(x=x1, y= y1, fill = sentiment)) +
+  geom_col(stat='identity') +
+  coord_flip()+
+  facet_wrap(~sentiment, scales = "free_x")+
+  ggtitle('Lexicon based word frequency')+
+  xlab('Words')+ylab('Frequency')
+Emotion_sentiment_df = frequency_df %>% 
+  inner_join(get_sentiments('nrc'), by='word')
+Emotion_sentiment_df %>%
+  group_by(sentiment) %>%
+  top_n(7,freq) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, freq)) %>%
+  ggplot(aes(x = word, y = freq , fill  = sentiment)) +
+  scale_fill_brewer(palette="Spectral")+
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free") +
+  coord_flip()+
+  ggtitle('Emotion based word frequency')+
+  xlab('Words')+ylab('Frequency')
+Nokia_Associations = findAssocs(Tweets_Corpus_TDM,terms ='brand',corlimit=0.05)
+Nokia_Associations
+Nokia_Associations_df = list_vect2df(Nokia_Associations)[, 2:3]
+
+ggplot(Nokia_Associations_df, aes(y = Nokia_Associations_df[, 1])) + 
+  geom_point(aes(x = Nokia_Associations_df[, 2],colour = Nokia_Associations_df[, 2],
+                 size = Nokia_Associations_df[, 2] ), 
+             data = Nokia_Associations_df) + 
+  theme_gdocs()+
+  scale_color_continuous(high = '#18069A',low = "#8985A3")+
+  guides(colour=FALSE,size =F)+
+  xlab('Correlation')+ylab('Words')+ggtitle('Nokia tweets Association with "fun" ')
+colnames(Nokia_Associations_df) = c('Words','Corr')
+qheat(Nokia_Associations_df, values=TRUE, high="blue",
+      digits=2, plot = FALSE) +
+  coord_flip()+guides(fill=F,ylab=F)+
+  xlab('Words')+ggtitle('Nokia tweets HeatMap with "fun"')
+
+Nokia_Corpus_DTM <- as.DocumentTermMatrix(Tweets_Corpus_TDM)
+CrowTotals <- apply(Nokia_Corpus_DTM , 1, sum)
+CNullDocs <- Nokia_Corpus_DTM[CrowTotals==0, ]
+Nokia_Corpus_DTM   <- Nokia_Corpus_DTM[CrowTotals> 0, ]
+if (length(CNullDocs$dimnames$Docs) > 0) {
+  TT_dataframe <- TT_dataframe[-as.numeric(CNullDocs$dimnames$Docs),]
+}
+Clda <- LDA(Nokia_Corpus_DTM, k = 5) 
+Cterm <- terms(Clda, 5) 
+Cterm
+Ctopics<- topics(Clda)
+Ctopics_df<- data.frame(date=(TT_dataframe$created), topic = Ctopics)
+X = cut(as.numeric(strftime(Ctopics_df$date, format="%H")),c(0,6,12,18,24))
+levels(X) = c('night','morning','noon','evening')
+qplot(X,..count.., data=Ctopics_df,
+      geom ="density",
+      fill= Cterm[topic],position="stack",
+      xlab = 'Tweets Time', ylab='Count',main = 'Nokia Topic Density')
+
+
