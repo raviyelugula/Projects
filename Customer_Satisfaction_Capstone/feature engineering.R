@@ -107,20 +107,18 @@ corrplot(Correlation, type="upper",
          outline = T)
 rm(list = Names)
 
+### Multicollinearity check
+require(usdm)
+vif(data.frame(Qdataset_no_missing)) ## VIF >4 can be consider for multicolinearity
+                                    
 ### Factor Analysis on Non missing data set of 10 Questions
 require(psych)
-# pca = principal(Qdataset_no_missing,nfactors = ncol(Qdataset_no_missing),rotate = 'none')
-# pca
-# 
-# pca_reduced = principal(Qdataset_no_missing, nfactors = 6, rotate = 'none')
-# pca_reduced
-# 
-# pca_rotated = principal(Qdataset_no_missing, nfactors = 6, rotate = 'varimax')
-# pca_rotated
-
 pca = principal(Pdataset_no_missing[,2:11],nfactors = 10,rotate = 'none')
 pca
-
+plot(pca$values,type="b",col = 'tomato',
+     xlab = 'Components',ylab = 'Engine Values',    
+     main = 'Scree plot for all possible components')   # Scree Plot
+                                    
 pca_reduced = principal(Pdataset_no_missing[,2:11], nfactors = 6, rotate = 'none')
 pca_reduced
 
@@ -131,7 +129,11 @@ rm(Correlation)
 Pdataset_no_missing_scaled = scale(Pdataset_no_missing[,2:12])
 Pdataset_no_missing_master = cbind(Pdataset_no_missing,pca_rotated$scores,
                                    Scaled_Satindex=Pdataset_no_missing_scaled[,11])
-
+#orthogonality
+round(pca_rotated$r.scores,5) #after factorizaation
+round(cor(Pdataset_no_missing_master[13:18]),5) #after factorizaation - same code but default function
+round(cor(Pdataset_no_missing_master[2:11]),5)  #before factorizaation
+#Regression on Factors - entire non missing data 
 n = names(Pdataset_no_missing_master[13:18])
 formula = as.formula(paste("Scaled_Satindex ~", paste(n, collapse = " + ")))
 Linear_regression = lm(formula,
