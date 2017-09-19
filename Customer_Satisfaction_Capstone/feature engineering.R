@@ -116,8 +116,8 @@ require(psych)
 pca = principal(Pdataset_no_missing[,2:11],nfactors = 10,rotate = 'none')
 pca
 plot(pca$values,type="b",col = 'tomato',
-     xlab = 'Components',ylab = 'Engine Values',    
-     main = 'Scree plot for all possible components')   # Scree Plot
+     xlab = 'Components',ylab = 'Engine Values',
+     main = 'Scree plot for all possible components') # Scree Plot
                                     
 pca_reduced = principal(Pdataset_no_missing[,2:11], nfactors = 6, rotate = 'none')
 pca_reduced
@@ -132,13 +132,61 @@ Pdataset_no_missing_master = cbind(Pdataset_no_missing,pca_rotated$scores,
 #orthogonality
 round(pca_rotated$r.scores,5) #after factorizaation
 round(cor(Pdataset_no_missing_master[13:18]),5) #after factorizaation - same code but default function
-round(cor(Pdataset_no_missing_master[2:11]),5)  #before factorizaation
+round(cor(Pdataset_no_missing_master[2:11]),5) #before factorizaation
 #Regression on Factors - entire non missing data 
 n = names(Pdataset_no_missing_master[13:18])
 formula = as.formula(paste("Scaled_Satindex ~", paste(n, collapse = " + ")))
 Linear_regression = lm(formula,
                 data = Pdataset_no_missing_master)
 summary(Linear_regression)
+
+### With 2 Factors 
+pca_reduced2 = principal(Pdataset_no_missing[,2:11], nfactors = 2, rotate = 'none')
+pca_reduced2
+
+pca_rotated2 = principal(Pdataset_no_missing[,2:11], nfactors = 2, rotate = 'varimax')
+pca_rotated2
+
+Pdataset_no_missing_scaled2 = scale(Pdataset_no_missing[,2:12])
+Pdataset_no_missing_master2 = cbind(Pdataset_no_missing,pca_rotated2$scores,
+                                   Scaled_Satindex=Pdataset_no_missing_scaled2[,11])
+#orthogonality
+round(pca_rotated2$r.scores,5) #after factorizaation
+round(cor(Pdataset_no_missing_master2[13:14]),5) #after factorizaation - same code but default function
+round(cor(Pdataset_no_missing_master2[2:11]),5) #before factorizaation
+#Regression on Factors - entire non missing data 
+n2 = names(Pdataset_no_missing_master2[13:14])
+formula2 = as.formula(paste("Scaled_Satindex ~", paste(n2, collapse = " + ")))
+Linear_regression2 = lm(formula2,
+                       data = Pdataset_no_missing_master2)
+summary(Linear_regression2)
+
+## Clustering
+Qdataset_no_missing=Qdataset[!apply(Qdataset, 1, function(x) any(x=="" | is.na(x))),] 
+Cdataset = Dataset[,c(1:6,11:12,28)]
+Cdataset_no_missing=Cdataset[!apply(Cdataset,1,function(x) any(x=="" | is.na(x))),]
+KMeans_Cdataset = Cdataset_no_missing[,c(4,6,7,8,9)]
+KMeans_Cdataset$Month = factor(KMeans_Cdataset$Month,
+                               labels = c(1:length(unique(KMeans_Cdataset$Month))))
+KMeans_Cdataset$`Planner Group code` = factor(KMeans_Cdataset$`Planner Group code`,
+                                              labels = c(1:length(unique(KMeans_Cdataset$`Planner Group code`))))
+KMeans_Cdataset$Product = factor(KMeans_Cdataset$Product,
+                                 labels = c(1,2))
+wcss = vector()
+set.seed(123)
+for (i in 1:25) wcss[i] = sum(kmeans(KMeans_Cdataset[3], i)$withinss)
+plot(x = 1:25,
+     y = wcss,
+     type = 'b',
+     main = paste('The Elbow Method'),
+     xlab = 'Number of clusters',
+     ylab = 'WCSS')
+
+
+set.seed(123)
+kmeans = kmeans(x = dataset, centers = 5)
+y_kmeans = kmeans$cluster
+
 
 ### Missing Value handling - State
 Dataset_M = Dataset
@@ -191,7 +239,6 @@ for(i in 1:nrow(DistanceNameMatrix)){
                                       method='jm'),
                            Match_Location_DF)
 }
-View(Match_Location_DF)
 
 Match_Location_DF = Match_Location_DF[Match_Location_DF$adist<=0.05,]   
 Match_Location_DF = Match_Location_DF[order(Match_Location_DF$Assigned_Id),]
@@ -204,7 +251,7 @@ for(i in 1:nrow(Match_Location_DF)){
   Dataset_M = within(Dataset_M,State[Location == temp_location ] <- temp_state) 
 }  ### 4546 state are mapped !!!
 
-write.csv(Dataset_M,'test.csv')
+#write.csv(Dataset_M,'test.csv')
 
 ### Missing States handling with the help of Cities
 excel_sheets(path = 'data/Workingdata.xlsx')
@@ -235,7 +282,6 @@ for(i in 1:nrow(DistanceNameMatrix)){
                                       method='jm'),
                            Match_Location_DF)
 }
-View(Match_Location_DF)
 backup_Match_Location_DF = Match_Location_DF
 
 Match_Location_DF = Match_Location_DF[Match_Location_DF$adist==0,]   
@@ -248,6 +294,8 @@ for(i in 1:nrow(Match_Location_DF)){
   temp_location = as.character(Match_Location_DF$Missed[i])
   Dataset_M = within(Dataset_M,State[Location == temp_location ] <- temp_state) 
 }  ### 3257 state are mapped !!!
+
+write.csv(Dataset_M,'Dataset_M.csv',row.names = F)
 
 ### should work on -- Planner group and State relation
 
