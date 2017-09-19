@@ -78,6 +78,22 @@ for(i in 1:10){
 }
 rm(temp)
 
+## Distribution analysis
+par(mfrow=c(2,5),oma=c(0,0,2,0))
+plot(factor(Dataset$Q1),pch=1,xlab='Question 1')
+plot(factor(Dataset$Q2),pch=2,xlab='Question 2')
+plot(factor(Dataset$Q3),pch=3,xlab='Question 3')
+plot(factor(Dataset$Q4),pch=4,xlab='Question 4')
+plot(factor(Dataset$Q5),pch=5,xlab='Question 5')
+plot(factor(Dataset$Q6),pch=6,xlab='Question 6')
+plot(factor(Dataset$Q7),pch=7,xlab='Question 7')
+plot(factor(Dataset$Q8),pch=8,xlab='Question 8')
+plot(factor(Dataset$Q9),pch=9,xlab='Question 9')
+plot(factor(Dataset$Q10),pch=10,xlab='Question 10')
+title("Frequency Distribution for all 10 Questions",outer = T)
+
+plot(factor(Dataset$Q1),pch=1,xlab='Question 1')
+
 Names = c('missing_all','missing_anyone','missing_Q1','missing_Q2','missing_Q3',
           'missing_Q4','missing_Q5','missing_Q6','missing_Q7','missing_Q8',
           'missing_Q9','missing_Q10')
@@ -110,7 +126,7 @@ rm(list = Names)
 ### Multicollinearity check
 require(usdm)
 vif(data.frame(Qdataset_no_missing)) ## VIF >4 can be consider for multicolinearity
-                                    
+
 ### Factor Analysis on Non missing data set of 10 Questions
 require(psych)
 pca = principal(Pdataset_no_missing[,2:11],nfactors = 10,rotate = 'none')
@@ -118,7 +134,7 @@ pca
 plot(pca$values,type="b",col = 'tomato',
      xlab = 'Components',ylab = 'Engine Values',
      main = 'Scree plot for all possible components') # Scree Plot
-                                    
+
 pca_reduced = principal(Pdataset_no_missing[,2:11], nfactors = 6, rotate = 'none')
 pca_reduced
 
@@ -137,7 +153,7 @@ round(cor(Pdataset_no_missing_master[2:11]),5) #before factorizaation
 n = names(Pdataset_no_missing_master[13:18])
 formula = as.formula(paste("Scaled_Satindex ~", paste(n, collapse = " + ")))
 Linear_regression = lm(formula,
-                data = Pdataset_no_missing_master)
+                       data = Pdataset_no_missing_master)
 summary(Linear_regression)
 
 ### With 2 Factors 
@@ -149,7 +165,7 @@ pca_rotated2
 
 Pdataset_no_missing_scaled2 = scale(Pdataset_no_missing[,2:12])
 Pdataset_no_missing_master2 = cbind(Pdataset_no_missing,pca_rotated2$scores,
-                                   Scaled_Satindex=Pdataset_no_missing_scaled2[,11])
+                                    Scaled_Satindex=Pdataset_no_missing_scaled2[,11])
 #orthogonality
 round(pca_rotated2$r.scores,5) #after factorizaation
 round(cor(Pdataset_no_missing_master2[13:14]),5) #after factorizaation - same code but default function
@@ -158,7 +174,7 @@ round(cor(Pdataset_no_missing_master2[2:11]),5) #before factorizaation
 n2 = names(Pdataset_no_missing_master2[13:14])
 formula2 = as.formula(paste("Scaled_Satindex ~", paste(n2, collapse = " + ")))
 Linear_regression2 = lm(formula2,
-                       data = Pdataset_no_missing_master2)
+                        data = Pdataset_no_missing_master2)
 summary(Linear_regression2)
 
 ## Clustering
@@ -174,7 +190,7 @@ KMeans_Cdataset$Product = factor(KMeans_Cdataset$Product,
                                  labels = c(1,2))
 wcss = vector()
 set.seed(123)
-for (i in 1:25) wcss[i] = sum(kmeans(KMeans_Cdataset[3], i)$withinss)
+for (i in 1:25) wcss[i] = sum(kmeans(KMeans_Cdataset[3:4], i)$withinss)
 plot(x = 1:25,
      y = wcss,
      type = 'b',
@@ -184,9 +200,8 @@ plot(x = 1:25,
 
 
 set.seed(123)
-kmeans = kmeans(x = dataset, centers = 5)
+kmeans = kmeans(x = KMeans_Cdataset[3], centers = 4)
 y_kmeans = kmeans$cluster
-
 
 ### Missing Value handling - State
 Dataset_M = Dataset
@@ -297,18 +312,70 @@ for(i in 1:nrow(Match_Location_DF)){
 
 write.csv(Dataset_M,'Dataset_M.csv',row.names = F)
 
+
+## Clustering based on States
+
+Originaldata = read.csv('datset_M.csv',header = T)
+Originaldata$State = tolower(trimws(Originaldata$State))
+Originaldata= Originaldata %>%
+  inner_join(OrderState,by='State')
+Originaldata=Originaldata[-(which(is.na(Originaldata$Planner.Group.code))),]
+Originaldata$StateNames = Originaldata$State
+Originaldata$Planner.Group.code = factor(Originaldata$Planner.Group.code,
+                                         labels = c(1:length(unique(Originaldata$Planner.Group.code))))
+Originaldata$State = factor(Originaldata$State,
+                            labels = c(1:22))
+Originaldata$Product = factor(Originaldata$Product,
+                              labels = c(1:length(unique(Originaldata$Product))))
+set.seed(123)
+kmeans = kmeans(x = Originaldata[11:12], centers = 4)
+Originaldata$clusterCode = kmeans$cluster
+
+Originaldata = Originaldata[,c(11,12,15,30,31,32)]
+require(plyr)
+require(dplyr)
+require(ggplot2)
+Originaldata = ddply(Originaldata, .(Planner.Group.code), mutate, count = length(unique(State)))
+OrderState = read_excel('StateOrder.xlsx')
+Originaldata %>% 
+  ggplot(aes(x = State, y = Planner.Group.code,
+             color= factor(count),shape =factor(clusterCode)))+
+  geom_point()+
+  ggtitle('Cluster(Planner_Product) across states')+
+  xlab('State Codes')+ylab('Planner Codes')+
+  scale_x_discrete(labels = levels(factor(Originaldata$OrderState)))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+Originaldata %>% 
+  ggplot(aes(x = State, y = Planner.Group.code,
+             color= factor(count)))+
+  geom_point()+
+  ggtitle('PlannerCodes across states')+
+  xlab('State Codes')+ylab('Planner Codes')+
+  #scale_x_discrete(labels = levels(factor(Originaldata$OrderState)))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+### Individual variable study
+Dataset_No_Missing=Dataset[!apply(Dataset, 1, function(x) any(x=="" | is.na(x))),] 
+# dim(Dataset)
+# [1] 18797    29
+# dim(Qdataset_no_missing)
+# [1] 17544    10
+
+  
+
 ### should work on -- Planner group and State relation
 
-length(unique(Dataset_M$`Planner Group code`))
-require(dplyr)
-Planner_State_count=Dataset_M %>%
-  group_by(Dataset_M$`Planner Group code`) %>%
-  summarise(ifelse(sum(is.na(State))>0,n_distinct(State)-1,n_distinct(State)))
-Planner_State_count = as.data.frame(Planner_State_count)
-colnames(Planner_State_count) = c('PlannerGroupCode','State_Count')
-Planner_State_count
-
-Planner_State_count2=Dataset_M %>%select(`Planner Group code`,State)
-group_by(Dataset_M$`Planner Group code`) 
-
-write.csv(Dataset_M,'tedt.csv')
+# length(unique(Dataset_M$`Planner Group code`))
+# require(dplyr)
+# Planner_State_count=Dataset_M %>%
+#   group_by(Dataset_M$`Planner Group code`) %>%
+#   summarise(ifelse(sum(is.na(State))>0,n_distinct(State)-1,n_distinct(State)))
+# Planner_State_count = as.data.frame(Planner_State_count)
+# colnames(Planner_State_count) = c('PlannerGroupCode','State_Count')
+# Planner_State_count
+# 
+# Planner_State_count2=Dataset_M %>%select(`Planner Group code`,State)
+# group_by(Dataset_M$`Planner Group code`) 
+# 
+# write.csv(Dataset_M,'tedt.csv')
