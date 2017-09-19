@@ -15,13 +15,18 @@ setup_twitter_oauth(
   consumer_secret = "T480vrOtvSK1XxGcPp20SdRoW99by3EGVvAapzyq8io0uH6lUh",
   access_token = "191958252-uOisKMkvWHWmiTRQnf9d6XMww5wtZVtox1ShcjMm",
   access_secret = "9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0")
-getCurRateLimitInfo(resources='search')
+getCurRateLimitInfo(resources = 'search')
 
-CocaCola_TweetsList= searchTwitter(searchString ='Coke',n=10000 , lang = 'en') 
-Pepsi_TweetsList= searchTwitter(searchString ='Pepsi',n=10000 , lang = 'en') 
+# CocaCola_TweetsList= searchTwitter(searchString ='Coke',n=10000 , lang = 'en') 
+# Pepsi_TweetsList= searchTwitter(searchString ='Pepsi',n=10000 , lang = 'en') 
+# CocaCola_DF = twListToDF(CocaCola_TweetsList)
+# Pepsi_DF = twListToDF(Pepsi_TweetsList)
 
-CocaCola_DF = twListToDF(CocaCola_TweetsList)
-Pepsi_DF = twListToDF(Pepsi_TweetsList)
+# write.csv(CocaCola_DF,'CocaCola_DF.csv',row.names = F) # fetched at 18th sep 08:10PM IST
+# write.csv(Pepsi_DF,'Pepsi_DF.csv',row.names = F)
+
+CocaCola_DF = read.csv(file ='CocaCola_DF.csv',header = T)
+Pepsi_DF = read.csv(file ='Pepsi_DF.csv',header = T)
 
 CocaCola_DF$createdDate = as.Date(CocaCola_DF$created,format = "%d-%m-%Y")
 Pepsi_DF$createdDate = as.Date(Pepsi_DF$created,format = "%d-%m-%Y")
@@ -86,7 +91,7 @@ for(i in 1: nrow(Pepsi_DF)){
 temp_df1 = data.frame(text = temp1, stringsAsFactors = F)
 Pepsi_Corpus = Corpus(VectorSource(temp_df1$text))
 Pepsi_Corpus = tm_map(Pepsi_Corpus, 
-                         removeWords,c(stopwords('en'),'rt','pepsi','drink','jimin'))
+                         removeWords,c(stopwords('en'),'rt','pepsi','drink'))
 rm(list = c('temp1','temp_df1','temp_df','temp'))
 
 CocaCola_Corpus_TDM = TermDocumentMatrix(CocaCola_Corpus)
@@ -112,9 +117,9 @@ ggplot(aes(reorder(term, freq),freq,fill= brand)) +
   coord_flip() +
   labs(list(title="Term Frequency Chart", x="Top 25 Terms", y="Term Counts")) 
 
-index = which(dimnames(CocaCola_Corpus_TDM)$Terms %in% c("cokezerosugar", "chance"))
+index = which(dimnames(CocaCola_Corpus_TDM)$Terms %in% c("like", "diet"))
 as.matrix(CocaCola_Corpus_TDM[index,1:50])
-index = which(dimnames(Pepsi_Corpus_TDM)$Terms %in% c("best",'coke'))
+index = which(dimnames(Pepsi_Corpus_TDM)$Terms %in% c("like",'coke'))
 as.matrix(Pepsi_Corpus_TDM[index,1:50])
 
 pal = brewer.pal(6, "Reds")
@@ -134,7 +139,7 @@ wordcloud(words = names(Pepsi_TermFrequency),
           colors = pal, 
           max.words = 500)
 
-Pepsi_Associations = findAssocs(Pepsi_Corpus_TDM,terms ='best',corlimit=0.05)
+Pepsi_Associations = findAssocs(Pepsi_Corpus_TDM,terms ='like',corlimit=0.15)
 Pepsi_Associations
 Pepsi_Associations_df = list_vect2df(Pepsi_Associations)[, 2:3]
 
@@ -145,15 +150,15 @@ ggplot(Pepsi_Associations_df, aes(y = Pepsi_Associations_df[, 1])) +
   theme_gdocs()+
   scale_color_continuous(high = '#18069A',low = "#8985A3")+
   guides(colour=FALSE,size =F)+
-  xlab('Correlation')+ylab('Words')+ggtitle('Pepsi tweets Association with "BEST" ')
+  xlab('Correlation')+ylab('Words')+ggtitle('Pepsi tweets Association with "like" ')
 colnames(Pepsi_Associations_df) = c('Words','Corr')
 qheat(Pepsi_Associations_df, values=TRUE, high="blue",
       digits=2, plot = FALSE) +
   coord_flip()+guides(fill=F,ylab=F)+
-  xlab('Words')+ggtitle('Pepsi tweets HeatMap with "BEST"')
+  xlab('Words')+ggtitle('Pepsi tweets HeatMap with "like"')
 
 
-CocaCola_Associations = findAssocs(CocaCola_Corpus_TDM,terms ='chance',corlimit=0.2)
+CocaCola_Associations = findAssocs(CocaCola_Corpus_TDM,terms ='like',corlimit=0.1)
 CocaCola_Associations
 CocaCola_Associations_df = list_vect2df(CocaCola_Associations)[, 2:3]
 
@@ -164,12 +169,12 @@ ggplot(CocaCola_Associations_df, aes(y = CocaCola_Associations_df[, 1])) +
   theme_gdocs()+
   scale_color_continuous(high = '#C40315',low = "#DE6C76")+
   guides(colour=FALSE,size =F)+
-  xlab('Correlation')+ylab('Words')+ggtitle('CocaCola tweets Association with "chance" ')
+  xlab('Correlation')+ylab('Words')+ggtitle('CocaCola tweets Association with "like" ')
 colnames(CocaCola_Associations_df) = c('Words','Corr')
 qheat(CocaCola_Associations_df, values=TRUE, high="red",
       digits=2, plot = FALSE) +
   coord_flip()+guides(fill=F,ylab=F)+
-  xlab('Words')+ggtitle('CocaCola tweets HeatMap with "chance"')
+  xlab('Words')+ggtitle('CocaCola tweets HeatMap with "like"')
 
 
 CocaCola_Corpus_DTM <- as.DocumentTermMatrix(CocaCola_Corpus_TDM)
@@ -186,7 +191,7 @@ Ctopics<- topics(Clda)
 Ctopics_df<- data.frame(date=(CocaCola_DF$created), topic = Ctopics)
 X = cut(as.numeric(strftime(Ctopics_df$date, format="%H")),c(0,6,12,18,24))
 levels(X) = c('night','morning','noon','evening')
-qplot(X,..count.., data=Ctopics_df,
+qplot(date,..count.., data=Ctopics_df,
       geom ="density",
       fill= Cterm[topic],position="stack",
       xlab = 'Tweets Time', ylab='Count',main = 'Coca-Cola Topic Density')
@@ -233,7 +238,7 @@ Emotion_sentiment_df = Frequency_DF %>%
   inner_join(get_sentiments('nrc'), by='word')
 Emotion_sentiment_df %>%
   group_by(sentiment) %>%
-  top_n(10,freq) %>%
+  top_n(8,freq) %>%
   ungroup() %>%
   mutate(word = reorder(word, freq)) %>%
   ggplot(aes(x = word, y = freq , fill  = brand)) +

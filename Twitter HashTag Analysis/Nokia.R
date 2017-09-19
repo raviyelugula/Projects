@@ -18,7 +18,7 @@ accesssecret = "9kTTYtORX4KnXk9SG4R9bQ1PpmQyBYEwmfvDksTh6Wht0"
 consumerkey = "MTfL0uv6oBbtVBa3dPuR4PS51"
 
 setup_twitter_oauth(consumerkey,consumersecret,accesstoken,accesssecret)
-Nokia= searchTwitter(searchString ='Nokia',
+Nokia= searchTwitter(searchString ='Batman',
                      n=2500 , lang = 'en') 
 TT_dataframe = twListToDF(Nokia)
 TT_dataframe$createdDate = as.Date(TT_dataframe$created,format = "%d-%m-%Y %H:%M")
@@ -57,7 +57,7 @@ for(i in 1: nrow(TT_dataframe)){
 }
 temp_df = data.frame(text = temp, stringsAsFactors = F)
 Tweets_Corpus = Corpus(VectorSource(temp_df$text))
-Tweets_Corpus = tm_map(Tweets_Corpus, 
+Tweets_Corpus = tm_map(Tweets_Corpus,
                        removeWords,c(stopwords('en'),'rt','nokia','phone'))
 Tweets_Corpus_TDM = TermDocumentMatrix(Tweets_Corpus)
 Tweets_Corpus_TDM_M = as.matrix(Tweets_Corpus_TDM)
