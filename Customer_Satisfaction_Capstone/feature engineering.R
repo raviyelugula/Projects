@@ -91,8 +91,58 @@ plot(factor(Dataset$Q8),pch=8,xlab='Question 8')
 plot(factor(Dataset$Q9),pch=9,xlab='Question 9')
 plot(factor(Dataset$Q10),pch=10,xlab='Question 10')
 title("Frequency Distribution for all 10 Questions",outer = T)
+par(mfrow=c(1,1))
 
-plot(factor(Dataset$Q1),pch=1,xlab='Question 1')
+par(mfrow=c(2,5),oma=c(0,0,2,0))
+boxplot((Dataset$Q1),pch=1,xlab='Question 1')
+boxplot((Dataset$Q2),pch=2,xlab='Question 2')
+boxplot((Dataset$Q3),pch=3,xlab='Question 3')
+boxplot((Dataset$Q4),pch=4,xlab='Question 4')
+boxplot((Dataset$Q5),pch=5,xlab='Question 5')
+boxplot((Dataset$Q6),pch=6,xlab='Question 6')
+boxplot((Dataset$Q7),pch=7,xlab='Question 7')
+boxplot((Dataset$Q8),pch=8,xlab='Question 8')
+boxplot((Dataset$Q9),pch=9,xlab='Question 9')
+boxplot((Dataset$Q10),pch=10,xlab='Question 10')
+title("Box plots for all 10 Questions",outer = T)
+par(mfrow=c(1,1))
+
+Dataset2 = Dataset
+Dataset2$Q1Factor = ifelse(Dataset$Q1 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q1 %in% c(4,5),'Satisfied',Dataset$Q1))
+Dataset2$Q2Factor = ifelse(Dataset$Q2 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q2 %in% c(4,5),'Satisfied',Dataset$Q2))
+Dataset2$Q3Factor = ifelse(Dataset$Q3 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q3 %in% c(4,5),'Satisfied',Dataset$Q3))
+Dataset2$Q4Factor = ifelse(Dataset$Q4 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q4 %in% c(4,5),'Satisfied',Dataset$Q4))
+Dataset2$Q5Factor = ifelse(Dataset$Q5 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q5 %in% c(4,5),'Satisfied',Dataset$Q5))
+Dataset2$Q6Factor = ifelse(Dataset$Q6 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q6 %in% c(4,5),'Satisfied',Dataset$Q6))
+Dataset2$Q7Factor = ifelse(Dataset$Q7 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q7 %in% c(4,5),'Satisfied',Dataset$Q7))
+Dataset2$Q8Factor = ifelse(Dataset$Q8 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q8 %in% c(4,5),'Satisfied',Dataset$Q8))
+Dataset2$Q9Factor = ifelse(Dataset$Q9 %in% c(1,2,3),'NotSatisfied',
+                           ifelse(Dataset$Q9 %in% c(4,5),'Satisfied',Dataset$Q9))
+Dataset2$Q10Factor = ifelse(Dataset$Q10 %in% c(1,2,3),'NotSatisfied',
+                            ifelse(Dataset$Q10 %in% c(4,5),'Satisfied',Dataset$Q10))
+
+par(mfrow=c(2,5),oma=c(0,0,2,0))
+plot(factor(Dataset2$Q1Factor),pch=1,xlab='Question 1')
+plot(factor(Dataset2$Q2Factor),pch=2,xlab='Question 2')
+plot(factor(Dataset2$Q3Factor),pch=3,xlab='Question 3')
+plot(factor(Dataset2$Q4Factor),pch=4,xlab='Question 4')
+plot(factor(Dataset2$Q5Factor),pch=5,xlab='Question 5')
+plot(factor(Dataset2$Q6Factor),pch=6,xlab='Question 6')
+plot(factor(Dataset2$Q7Factor),pch=7,xlab='Question 7')
+plot(factor(Dataset2$Q8Factor),pch=8,xlab='Question 8')
+plot(factor(Dataset2$Q9Factor),pch=9,xlab='Question 9')
+plot(factor(Dataset2$Q10Factor),pch=10,xlab='Question 10')
+title("Frequency Distribution for all 10 Questions as 2 Factors",outer = T)
+par(mfrow=c(1,1))
+
 
 Names = c('missing_all','missing_anyone','missing_Q1','missing_Q2','missing_Q3',
           'missing_Q4','missing_Q5','missing_Q6','missing_Q7','missing_Q8',
@@ -314,11 +364,11 @@ write.csv(Dataset_M,'Dataset_M.csv',row.names = F)
 
 
 ## Clustering based on States
-
-Originaldata = read.csv('datset_M.csv',header = T)
+OrderState = read_excel('StateOrder.xlsx')
+Originaldata = read.csv('Dataset_M.csv',header = T)
 Originaldata$State = tolower(trimws(Originaldata$State))
 Originaldata= Originaldata %>%
-  inner_join(OrderState,by='State')
+  left_join(OrderState,by='State')
 Originaldata=Originaldata[-(which(is.na(Originaldata$Planner.Group.code))),]
 Originaldata$StateNames = Originaldata$State
 Originaldata$Planner.Group.code = factor(Originaldata$Planner.Group.code,
@@ -331,12 +381,13 @@ set.seed(123)
 kmeans = kmeans(x = Originaldata[11:12], centers = 4)
 Originaldata$clusterCode = kmeans$cluster
 
+
 Originaldata = Originaldata[,c(11,12,15,30,31,32)]
 require(plyr)
 require(dplyr)
 require(ggplot2)
 Originaldata = ddply(Originaldata, .(Planner.Group.code), mutate, count = length(unique(State)))
-OrderState = read_excel('StateOrder.xlsx')
+
 Originaldata %>% 
   ggplot(aes(x = State, y = Planner.Group.code,
              color= factor(count),shape =factor(clusterCode)))+
@@ -355,14 +406,165 @@ Originaldata %>%
   #scale_x_discrete(labels = levels(factor(Originaldata$OrderState)))+
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-### Individual variable study
-Dataset_No_Missing=Dataset[!apply(Dataset, 1, function(x) any(x=="" | is.na(x))),] 
-# dim(Dataset)
-# [1] 18797    29
-# dim(Qdataset_no_missing)
-# [1] 17544    10
+## State wise score analysis
+OrderState = read_excel('StateOrder.xlsx')
+Originaldata = read.csv('Dataset_M.csv',header = T)
+Originaldata$State = tolower(trimws(Originaldata$State))
+Originaldata= Originaldata %>%
+  left_join(OrderState,by='State')
 
-  
+Originaldata$Q1Factor = ifelse(Originaldata$Q1 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q1 %in% c(4,5),'Satisfied',Originaldata$Q1))
+Originaldata$Q2Factor = ifelse(Originaldata$Q2 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q2 %in% c(4,5),'Satisfied',Originaldata$Q2))
+Originaldata$Q3Factor = ifelse(Originaldata$Q3 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q3 %in% c(4,5),'Satisfied',Originaldata$Q3))
+Originaldata$Q4Factor = ifelse(Originaldata$Q4 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q4 %in% c(4,5),'Satisfied',Originaldata$Q4))
+Originaldata$Q5Factor = ifelse(Originaldata$Q5 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q5 %in% c(4,5),'Satisfied',Originaldata$Q5))
+Originaldata$Q6Factor = ifelse(Originaldata$Q6 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q6 %in% c(4,5),'Satisfied',Originaldata$Q6))
+Originaldata$Q7Factor = ifelse(Originaldata$Q7 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q7 %in% c(4,5),'Satisfied',Originaldata$Q7))
+Originaldata$Q8Factor = ifelse(Originaldata$Q8 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q8 %in% c(4,5),'Satisfied',Originaldata$Q8))
+Originaldata$Q9Factor = ifelse(Originaldata$Q9 %in% c(1,2,3),'NotSatisfied',
+                               ifelse(Originaldata$Q9 %in% c(4,5),'Satisfied',Originaldata$Q9))
+Originaldata$Q10Factor = ifelse(Originaldata$Q10 %in% c(1,2,3),'NotSatisfied',
+                                ifelse(Originaldata$Q10 %in% c(4,5),'Satisfied',Originaldata$Q10))
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q10Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 10 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q9Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 09 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q8Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 08 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q7Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 07 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q6Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 06 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q5Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 05 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q4Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 04 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q3Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 03 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q2Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 02 Responses across states')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(State)%>%
+  ggplot(aes(Q1Factor))+
+  facet_wrap(~State, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 01 Responses across states')+xlab('')+ylab('')
+
+Originaldata %>%
+  ggplot(aes(State))+
+  geom_bar()+
+  ggtitle('State wise records count')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+## year wise Question 
+Originaldata %>%
+  ggplot(aes(Year))+
+  geom_bar()+
+  ggtitle('Year wise records count')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+qplot(Year,..count..,data = Originaldata_Sub,
+      geom = 'bar')
+
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q9Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 09 Responses across Years')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q8Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 08 Responses across Years')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q7Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 07 Responses across Years')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q6Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 06 Responses across Years')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q5Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 05 Responses across Years')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q4Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 04 Responses across Years')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q3Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 03 Responses across Years')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q2Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 02 Responses across Years')+xlab('')+ylab('')
+Originaldata %>%
+  group_by(Year)%>%
+  ggplot(aes(Q1Factor))+
+  facet_wrap(~Year, scales = "free_x")+
+  geom_bar()+
+  ggtitle('Question 01 Responses across Years')+xlab('')+ylab('')
+
 
 ### should work on -- Planner group and State relation
 
