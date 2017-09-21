@@ -143,6 +143,16 @@ for(i in 30:39){
 qplot(Year,..count..,data = Dataset,
       geom = 'bar',main='Year wise records count')
  
-
+CustomerBasedDataset = Dataset[,c(4,5,8,9,10,12,15,13,11,14,28,29,40)][!apply(Dataset[,14], 1, function(x) any(x=="" | is.na(x))),] 
+CustomerBasedDataset = CustomerBasedDataset[order(CustomerBasedDataset$`Customer name`,CustomerBasedDataset$`Month&Year`),]
+repeatedCustRecIds = which(duplicated(CustomerBasedDataset$`Customer name`))
+repeatedCustRecIds = sort(unique(c(repeatedCustRecIds,repeatedCustRecIds-1)))
+CustomerBasedDataset_Repeated = CustomerBasedDataset[repeatedCustRecIds,]
+NotifNoBasedDataset = Dataset[,c(4,5,8,9,10,12,13,15,11,14,28,29,40)][!apply(Dataset[,9], 1, function(x) any(x=="" | is.na(x))),] 
+NotifNoBasedDataset = NotifNoBasedDataset[order(NotifNoBasedDataset$`Notification no`,NotifNoBasedDataset$`Month&Year`),]
+repeatedNotifNoIds = which(duplicated(NotifNoBasedDataset$`Notification no`))
+repeatedNotifNoIds = sort(unique(c(repeatedNotifNoIds,repeatedNotifNoIds-1)))
+NotifNoBasedDataset_Repeated = NotifNoBasedDataset[repeatedNotifNoIds,]
+StateWiseDF_List = split(Dataset,f = Dataset$StateCorrected)
 
 
