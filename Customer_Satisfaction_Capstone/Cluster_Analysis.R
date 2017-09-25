@@ -155,4 +155,9 @@ repeatedNotifNoIds = sort(unique(c(repeatedNotifNoIds,repeatedNotifNoIds-1)))
 NotifNoBasedDataset_Repeated = NotifNoBasedDataset[repeatedNotifNoIds,]
 StateWiseDF_List = split(Dataset,f = Dataset$StateCorrected)
 
+Dataset_FIE = subset(Dataset,Dataset$Product=='FIE')
+Dataset_AE = subset(Dataset,Dataset$Product=='AE')
+StateWiseDF_List_FIE = split(Dataset_FIE,f = Dataset_FIE$StateCorrected)
+StateWiseDF_List_AE = split(Dataset_AE,f = Dataset_AE$StateCorrected)                                                                             
+
 
