@@ -100,5 +100,20 @@ Linear_regression2 = lm(formula2,
 summary(Linear_regression2)
 plot(Linear_regression2)
 
-
+### LAsso Regression on non missing questions
+require(tidyverse)
+y = QuestionNoMissing$Satindex
+x = QuestionNoMissing %>% 
+  dplyr::select(Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10) %>%
+  data.matrix()
+require(glmnet)
+Lasso_regression = glmnet(x,y,alpha = 1)
+summary(Lasso_regression)
+plot(Lasso_regression)
+Lasso_CV = cv.glmnet(x,y,alpha = 1)
+plot(Lasso_CV)
+lambda_min = Lasso_CV$lambda.min
+lambda_min
+Lasso_regression_lam = glmnet(x,y,alpha = 1,lambda = lambda_min)
+Lasso_regression_lam$beta
 
