@@ -1,8 +1,8 @@
 ---
 title: "Coke vs Pepsi Twitter sentiment analysis"
 author: "Ravindranadh"
-date: "18 September 2017"
-output: word_document
+date: "21st September 2017"
+output: pdf_document
 ---
 
 ###1.Introduction
@@ -38,8 +38,8 @@ require(ggthemes)
 * Store the tweets in a dataframe and convert it to corpus.
 ```{r message=FALSE, results='hide',warning=FALSE}
 setup_twitter_oauth(consumerkey,consumersecret,accesstoken,accesssecret)
-CocaCola_TweetsList= searchTwitter(searchString ='Coke',n=10000 , lang = 'en') 
-Pepsi_TweetsList= searchTwitter(searchString ='Pepsi',n=10000 , lang = 'en') 
+CocaCola_TweetsList= searchTwitter(searchString ='Coke',n=5000 , lang = 'en') 
+Pepsi_TweetsList= searchTwitter(searchString ='Pepsi',n=5000 , lang = 'en') 
 
 CocaCola_DF = twListToDF(CocaCola_TweetsList)
 Pepsi_DF = twListToDF(Pepsi_TweetsList)
@@ -127,7 +127,7 @@ for(i in 1: nrow(Pepsi_DF)){
 temp_df1 = data.frame(text = temp1, stringsAsFactors = F)
 Pepsi_Corpus = Corpus(VectorSource(temp_df1$text))
 Pepsi_Corpus = tm_map(Pepsi_Corpus, 
-                         removeWords,c(stopwords('en'),'rt','pepsi','drink','jimin'))
+                         removeWords,c(stopwords('en'),'rt','pepsi','drink'))
 rm(list = c('temp1','temp_df1','temp_df','temp'))
 ```
 
