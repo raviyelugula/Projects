@@ -59,6 +59,9 @@ corrplot(cor(QuestionNoMissing[1:10]), type="upper",
          outline = T)
 require(usdm)
 vif(data.frame(QuestionNoMissing[1:10]))
+QuestionNoMissing_Sq= QuestionNoMissing[1:10]*QuestionNoMissing[1:10]
+vif(data.frame(QuestionNoMissing_Sq))
+
 ### Factor Analysis on Non missing data set of 10 Questions ----
 require(psych)
 pca = principal(QuestionNoMissing[1:10],nfactors = 10,rotate = 'none')
@@ -77,13 +80,31 @@ Scaled_Satindex=scale(QuestionNoMissing[,11])
 colnames(Scaled_Satindex)= c('Scaled_Satindex')
 QuestionNoMissing = cbind(QuestionNoMissing,pca_rotated$scores,Scaled_Satindex)
 
+pca_reduced2 = principal(QuestionNoMissing[1:10], nfactors = 10, rotate = 'none')
+pca_reduced2
+
 pca_reduced2 = principal(QuestionNoMissing[1:10], nfactors = 2, rotate = 'none')
 pca_reduced2
 pca_rotated2 = principal(QuestionNoMissing[1:10], nfactors = 2, rotate = 'varimax')
 pca_rotated2
+pca_rotated3 = principal(QuestionNoMissing[1:10], nfactors = 2, rotate = 'quartimax')
+pca_rotated3
+pca_rotated4 = principal(QuestionNoMissing[1:10], nfactors = 2, rotate = 'bentlerT')
+pca_rotated4
+pca_rotated5 = principal(QuestionNoMissing[1:10], nfactors = 2, rotate = 'equamax')
+pca_rotated5
+pca_rotated6 = principal(QuestionNoMissing[1:10], nfactors = 2, rotate = 'varimin')
+pca_rotated6
+pca_rotated7 = principal(QuestionNoMissing[1:10], nfactors = 2, rotate = 'geominT')
+pca_rotated7
+pca_rotated8 = principal(QuestionNoMissing[1:10], nfactors = 2, rotate = 'bifactor')
+pca_rotated8
+
+
 round(pca_rotated2$r.scores,5) # all rotated factors are orthogonal
 
 QuestionNoMissing2 = cbind(QuestionNoMissing[1:11],pca_rotated2$scores,Scaled_Satindex)
+round(cor(pca_reduced2$scores))
 
 ### MultiLinear Regression ----
 formula = as.formula(paste("Scaled_Satindex ~", 
@@ -104,16 +125,47 @@ plot(Linear_regression2)
 require(tidyverse)
 y = QuestionNoMissing$Satindex
 x = QuestionNoMissing %>% 
-  dplyr::select(Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10) %>%
-  data.matrix()
+            dplyr::select(Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10) %>%
+            data.matrix()
 require(glmnet)
-Lasso_regression = glmnet(x,y,alpha = 1)
+Lasso_regression = glmnet(x*x,y,alpha = 1)
 summary(Lasso_regression)
 plot(Lasso_regression)
-Lasso_CV = cv.glmnet(x,y,alpha = 1)
+Lasso_CV = cv.glmnet(x*x,y,alpha = 1)
 plot(Lasso_CV)
 lambda_min = Lasso_CV$lambda.min
 lambda_min
-Lasso_regression_lam = glmnet(x,y,alpha = 1,lambda = lambda_min)
+Lasso_regression_lam = glmnet(x*x,y,alpha = 1,lambda = lambda_min)
 Lasso_regression_lam$beta
+
+
+formula4 = as.formula(paste("Satindex ~", 
+                            paste(names(QuestionNoMissing[1:8]), collapse = " + ")))
+LR = lm(formula4,
+        data = QuestionNoMissing)
+summary(LR)
+Planner_Sat_NonMissing_data = Dataset[,c(11,28)]
+Planner_Sat_NonMissing=Planner_Sat_NonMissing_data[!apply(Planner_Sat_NonMissing_data, 1, function(x) any(x=="" | is.na(x))),] 
+write.csv(Planner_Sat_NonMissing_data,'Planner_Sat_NonMissing_data.csv')
+
+### RF ###
+require(randomForest)
+RF_model = randomForest(x = QuestionNoMissing[,1:10],
+                        y = QuestionNoMissing$Satindex,
+                        data_set = QuestionNoMissing,
+                        ntree =  300,
+                        mtry =  4,
+                        nodesize = 300)
+RF_model
+plot(RF_model, main = "High number of trees vs OOB error")
+require(caret)
+set.seed(123)
+grid_RF_tune = train(x = QuestionNoMissing[,1:10],
+                     y = QuestionNoMissing$Satindex,
+                     method = 'rf')
+grid_RF_tune #gridsearch gives 16
+
+
+
+
 

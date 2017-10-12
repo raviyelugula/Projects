@@ -73,3 +73,4 @@ for(i in 1:10){
 }
 title("Box plots for all 10 Questions",outer = T)
 par(mfrow=c(1,1))
+

@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "LowSat_Data = subset(Dataset, Dataset$Satindex<=3)\nLowSat_Data_1 = subset(Dataset, Dataset$Satindex<=1)\nLowSat_Data_2 = subset(Dataset, Dataset$Satindex<=2 & Dataset$Satindex>1)\nLowSat_Data_3 = subset(Dataset, Dataset$Satindex<=3 & Dataset$Satindex>2)\n\nQuestionNoMissing_L=LowSat_Data[,1:28][!apply(LowSat_Data[,18:28], 1, function(x) any(x==\"\" | is.na(x))),] \nround(cor(QuestionNoMissing_L[1:10]),2)\ncorrplot(cor(QuestionNoMissing_L[1:10]), type=\"upper\",\n         method = 'circle' ,order=\"hclust\", add = F,\n         col=brewer.pal(n=4, name=\"RdBu\"),  \n         outline = T)\nvif(data.frame(QuestionNoMissing_L[1:10]))\n\nformula_L = as.formula(paste(\"Satindex ~\", \n                           paste(names(QuestionNoMissing_L[1:10]), collapse = \" + \")))\nLinear_regression_L = lm(formula_L,\n                       data = QuestionNoMissing)\nsummary(Linear_regression_L)\n\nStateWiseDF_List_L = split(QuestionNoMissing_L,f = QuestionNoMissing_L$State)\nKarnataka_data = StateWiseDF_List_L[[3]][,1:28][!apply(StateWiseDF_List_L[[3]][,18:28], 1, function(x) any(x==\"\" | is.na(x))),] \nround(cor(Karnataka_data[18:27]),2)\ncorrplot(cor(Karnataka_data[18:27]), type=\"upper\",\n         method = 'circle' ,order=\"hclust\", add = F,\n         col=brewer.pal(n=4, name=\"RdBu\"),  \n         outline = T)\nvif(data.frame(Karnataka_data[18:27]))\nformula_L = as.formula(paste(\"Satindex ~\", \n                             paste(names(Karnataka_data[18:27]), collapse = \" + \")))\nLinear_regression_L = lm(formula_L,\n                         data = QuestionNoMissing)\nsummary(Linear_regression_L)\n\n\n\n",
+    "created" : 1507289849401.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3489279155",
+    "id" : "8F2B2504",
+    "lastKnownWriteTime" : 1507316130,
+    "last_content_update" : 1507316130802,
+    "path" : "~/GitHub/Projects/Customer_Satisfaction_Capstone/LowSat.R",
+    "project_path" : "LowSat.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

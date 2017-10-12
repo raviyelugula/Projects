@@ -34,3 +34,15 @@ Linear_regression_s1 = lm(formula_s1,
                        data = QuestionNoMissing_S1)
 summary(Linear_regression_s1)
 plot(Linear_regression_s1)
+
+
+delhi_data = StateWiseDF_List[[5]][,1:29][!apply(StateWiseDF_List[[5]][,18:28], 1, function(x) any(x=="" | is.na(x))),] 
+#delhi_data = StateWiseDF_List[[5]][,1:29]
+delhi_data2 = delhi_data[,1:29][!apply(delhi_data[,15], 1, function(x) any(x=="" | is.na(x))),] 
+mean(delhi_data2$Satindex,na.rm=T)
+unique(delhi_data2$State)
+unique(delhi_data2$`Planner Group code`)
+
+
+
+

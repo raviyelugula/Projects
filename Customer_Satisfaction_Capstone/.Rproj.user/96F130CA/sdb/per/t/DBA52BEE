@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "QuestionNoMissing_S1=StateWiseDF_List[[18]][,18:28][!apply(StateWiseDF_List[[18]][,18:28], 1, function(x) any(x==\"\" | is.na(x))),] \nStateWiseDF_List[[18]]$StateCorrected[1]\nrequire(corrplot)\nrequire(RColorBrewer)\nround(cor(QuestionNoMissing_S1[1:10]),2)\ncorrplot(cor(QuestionNoMissing_S1[1:10]), type=\"upper\",\n         method = 'circle' ,order=\"hclust\", add = F,\n         col=brewer.pal(n=4, name=\"RdBu\"),  \n         outline = T)\nrequire(usdm)\nvif(data.frame(QuestionNoMissing_S1[1:10]))\n### Factor Analysis on Non missing data set of 10 Questions ----\nrequire(psych)\npca_s1 = principal(QuestionNoMissing_S1[1:10],nfactors = 10,rotate = 'none')\npca_s1\nplot(pca_s1$values,type=\"b\",col = barColour,\n     xlab = 'No of Principal Components',ylab = 'Engine Values',\n     main = 'Scree plot for all possible components') # Scree Plot\nabline(h = 1,col='orangered')\npca_reduced_s1 = principal(QuestionNoMissing_S1[1:10], nfactors = 6, rotate = 'none')\npca_reduced_s1\npca_rotated_s1 = principal(QuestionNoMissing_S1[1:10], nfactors = 6, rotate = 'varimax')\npca_rotated_s1\nround(pca_rotated_s1$r.scores,5) # all rotated factors are orthogonal\n\nScaled_Satindex=scale(QuestionNoMissing_S1[,11])\ncolnames(Scaled_Satindex)= c('Scaled_Satindex')\nQuestionNoMissing_S1 = cbind(QuestionNoMissing_S1,pca_rotated_s1$scores,Scaled_Satindex)\n\n### MultiLinear Regression ----\nformula_s1 = as.formula(paste(\"Scaled_Satindex ~\", \n                           paste(names(QuestionNoMissing_S1[12:17]), collapse = \" + \")))\nLinear_regression_s1 = lm(formula_s1,\n                       data = QuestionNoMissing_S1)\nsummary(Linear_regression_s1)\nplot(Linear_regression_s1)\n\n\ndelhi_data = StateWiseDF_List[[5]][,1:29][!apply(StateWiseDF_List[[5]][,18:28], 1, function(x) any(x==\"\" | is.na(x))),] \n#delhi_data = StateWiseDF_List[[5]][,1:29]\ndelhi_data2 = delhi_data[,1:29][!apply(delhi_data[,15], 1, function(x) any(x==\"\" | is.na(x))),] \nmean(delhi_data2$Satindex,na.rm=T)\nunique(delhi_data2$State)\nunique(delhi_data2$`Planner Group code`)\n\n\n\n\n",
+    "created" : 1506008263563.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2057216437",
+    "id" : "DBA52BEE",
+    "lastKnownWriteTime" : 1507280100,
+    "last_content_update" : 1507280100663,
+    "path" : "~/GitHub/Projects/Customer_Satisfaction_Capstone/StateClusterAnalysis.R",
+    "project_path" : "StateClusterAnalysis.R",
+    "properties" : {
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
