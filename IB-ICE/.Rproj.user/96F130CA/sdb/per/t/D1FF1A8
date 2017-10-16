@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "require(foreign)\nsetwd(\"~/GitHub/Projects/IB-ICE\")\nrequire(foreign)\nIB_Data = read.spss(file = 'IB ICE.sav',to.data.frame = T)\nrequire(mlr)\nsummarizeColumns(IB_Data)\nrequire(dplyr)\nIB_Data_New = IB_Data %>%\n                select(Slno,\n                       Light1,Light2,Light3,\n                       Emp1,Emp2,Emp3,\n                       assort1,assort2,assort3,assort4,\n                       Urge1,Urge2,Urge3_Changed,\n                       IB1_changed,IBT2,IBT3,IBT4,IBT5,\n                       Layout1,Layout2,Layout3,\n                       Timetaken,Moneyavailable,Moneyspent,Age,Gender,\n                       IBProp,IBProp) %>%\n                mutate(Light = mean(c(Light1,Light2,Light3),na.rm=T),\n                       Emp = mean(c(Emp1,Emp2,Emp3,na.rm=T)),\n                       Assort = mean(c(assort1,assort2,assort3,assort4),na.rm=T),\n                       Urge = mean(c(Urge1,Urge2,Urge3_Changed),na.rm=T),\n                       IBT = mean(c(IB1_changed,IBT2,IBT3,IBT4,IBT5),na.rm=T),\n                       Layout = mean(c(Layout1,Layout2,Layout3,na.rm=T)))\n\ninstall.packages(\"pdftools\")\nlibrary(pdftools)\ndownload.file(\"http://eci.nic.in/eci_main/archiveofge2009/Stats/VOLII/VolII_ConstituencyDataSummary.pdf\", \"test.pdf\", mode = \"wb\")\ntxt <- pdf_text(\"test.pdf\")\n\nlibrary(RCurl)\nlibrary(XML)\ntheurl <- \"http://myneta.info/ls2014/index.php?action=summary&subAction=candidates_analyzed&sort=candidate#summary\"\nwebpage <- getURL(theurl)\nwebpage <- readLines(tc <- textConnection(webpage)); close(tc)\npagetree <- htmlTreeParse(webpage, error=function(...){})\ntablehead <- xpathSApply(pagetree, \"//*/table[@class='divTableWithFloatingHeader']/tr/th\", xmlValue)\ntable <- xpathApply(xmlRoot(pagetree), \"//table\", xmlValue)\n\nbody <- pagetree$children$html$children$body \ndivbodyContent <- body$children$div$children[[1]]$children$div$children[[4]]\ntables <- divbodyContent$children[names(divbodyContent)==\"table\"]\ndivbodyContent <- pagetree$children[[1]][2]$body[8]\ntables <- divbodyContent$children[names(divbodyContent)==\"table\"]\n\n\n\nlibrary(rvest)\nwebpages <- read_html(theurl)\nrank_data_html <- html_nodes(webpage,'.divTableWithFloatingHeader')\n\n\nlibrary(rvest)\nwebpages <- read_html('https://m.imdb.com/chart/top')\nrank_data_html <- html_nodes(webpage,'.unbold')\n",
+    "created" : 1507573789126.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1134824571",
+    "id" : "D1FF1A8",
+    "lastKnownWriteTime" : 1507831833,
+    "last_content_update" : 1507831834007,
+    "path" : "~/GitHub/Projects/IB-ICE/IB ICE.R",
+    "project_path" : "IB ICE.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
