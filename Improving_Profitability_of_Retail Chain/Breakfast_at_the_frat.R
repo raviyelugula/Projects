@@ -66,7 +66,124 @@ require(cluster)
 #system.time(pam(daisy(rawdata_factors[,c(10:12,15:17,22,24,28)], metric="gower", type=list(symm=1:9)), k=4))
 #system.time(kmodes(rawdata_factors[,c(10:12,15:17,22,24,28)], modes=2))
 
+unique(rawdata_factors$PRODUCT_SIZE)
+# 1 oz = 29.5735 ml
+# 1 LT = 1000 ml
+# 1 ML = 1 ml
+# 1 CT = 200 mg
+require(tidyr)
+rawdata_factors = extract(rawdata_factors, PRODUCT_SIZE, c("VOLUME", "V_UNITS"), "([^ ]+) (.*)")
+rawdata_factors$VOLUME=as.numeric(rawdata_factors$VOLUME)
+rawdata_factors$PRODUct_SIZE_Milli = ifelse(rawdata_factors$V_UNITS=='ML', rawdata_factors$VOLUME,
+                                            ifelse(rawdata_factors$V_UNITS=='CT',rawdata_factors$VOLUME*200,
+                                                   ifelse(rawdata_factors$V_UNITS=='LT',rawdata_factors$VOLUME*1000,
+                                                          ifelse(rawdata_factors$V_UNITS=='OZ',rawdata_factors$VOLUME*29.5735,-1))))
 
+## 14 variables
+names(rawdata_factors)
+require(dummies)
+names(rawdata_factors[,c(9:12,15:17,19:20,22,24,27,30)])
+sapply(rawdata_factors[,c(9:12,15:17,19:20,22,24,27,30)],class)
+dependents = dummy.data.frame(rawdata_factors[,c(9:12,15:17,19:20,22,24,27,30)],sep='.')
+scaled_dependents = as.data.frame(scale(dependents))
+require(corrplot)
+require(RColorBrewer)
+round(cor(scaled_dependents),2)
+
+dependents_noColnames = scaled_dependents
+colnames(dependents_noColnames) = c(1:ncol(scaled_dependents))
+corrplot(cor(dependents_noColnames), type="upper",
+         method = 'circle' ,order="hclust", add = F,
+         col=brewer.pal(n=4, name="RdBu"),  
+         outline = T)
+require(usdm)
+vif(scaled_dependents)
+sapply(rawdata_factors[,c(9,19:20,27,30)],class)
+vif(as.data.frame(scale(rawdata_factors[,c(9,27,19:20,30)])))
+
+linearmodel = lm(SPEND~PRICE+BASE_PRICE+SALES_AREA_SIZE_NUM+
+                   AVG_WEEKLY_BASKETS+DISCOUNT_PRICE+
+                   PRODUct_SIZE_Milli, data = rawdata_factors) 
+summary(linearmodel)
+plot(linearmodel)
+
+linearmodel2 = lm((SPEND^2)~PRICE+BASE_PRICE+SALES_AREA_SIZE_NUM+
+                   AVG_WEEKLY_BASKETS+DISCOUNT_PRICE+
+                   PRODUct_SIZE_Milli, data = rawdata_factors) 
+summary(linearmodel2)
+plot(linearmodel2)
+
+## 8 variables
+names(rawdata_factors)
+require(dummies)
+names(rawdata_factors[,c(9:12,15,24,27,29)])
+sapply(rawdata_factors[,c(9:12,15,24,27,29)],class)
+dependents = dummy.data.frame(rawdata_factors[,c(9:12,15,24,27,29)],sep='.')
+names(dependents)
+scaled_dependents = as.data.frame(scale(dependents))
+require(corrplot)
+require(RColorBrewer)
+round(cor(scaled_dependents),2)
+dependents_noColnames = scaled_dependents
+colnames(dependents_noColnames) = c(1:ncol(dependents))
+corrplot(cor(dependents_noColnames), type="upper",
+         method = 'circle' ,order="hclust", add = F,
+         col=brewer.pal(n=4, name="RdBu"),  
+         outline = T)
+
+require(usdm)
+vif(scaled_dependents)
+sapply(rawdata_factors[,c(9:12,15,24,27,29)],class)
+vif(as.data.frame(scale(rawdata_factors[,c(9,27)])))
+
+## 4 variables
+names(rawdata_factors)
+require(dummies)
+names(rawdata_factors[,c(9,15,24,27)])
+sapply(rawdata_factors[,c(9,15,24,27)],class)
+dependents = dummy.data.frame(rawdata_factors[,c(9,15,24,27)],sep='.')
+names(dependents)
+scaled_dependents = as.data.frame(scale(dependents))
+require(corrplot)
+require(RColorBrewer)
+round(cor(scaled_dependents),2)
+dependents_noColnames = scaled_dependents
+colnames(dependents_noColnames) = c(1:ncol(dependents))
+corrplot(cor(dependents_noColnames), type="upper",
+         method = 'circle' ,order="hclust", add = F,
+         col=brewer.pal(n=4, name="RdBu"),  
+         outline = T)
+
+require(usdm)
+vif(scaled_dependents)
+vif(as.data.frame(scale(rawdata_factors[,c(9,27)])))
+ 
+
+## Random Forest
+require(randomForest)
+# Dense Forest
+set.seed(123)
+RF_model = randomForest(x = rawdata_factors[,c(9:12,15:17,19:20,22,24,27,30)],
+                        y = rawdata_factors[,c(7)],
+                        data_set = rawdata_factors,
+                        ntree =  500,  # large number because we want to build as many trees as possible
+                        mtry =  4,
+                        nodesize = 5000)
+RF_model
+plot(RF_model, main = "High number of trees vs OOB error")
+
+# Adjusting mtry - 2 techinques - tureRF and gridsearch
+set.seed(123)
+tuned_RF_model = tuneRF(x = rawdata_factors[,c(9:12,15:17,19:20,22,24,27,30)],
+                        y = rawdata_factors[,c(7)],
+                        data_set = rawdata_factors,
+                        mtryStart = 2,
+                        stepFactor = 1.5,
+                        improve = 0.001,
+                        ntreeTry = 300,
+                        nodesize = 5000,
+                        doBest = T, trace = T, plot = T,importance = T)
+tuned_RF_model #tune_RF - 19
 
 
 
