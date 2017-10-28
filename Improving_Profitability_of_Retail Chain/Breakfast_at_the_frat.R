@@ -185,8 +185,128 @@ tuned_RF_model = tuneRF(x = rawdata_factors[,c(9:12,15:17,19:20,22,24,27,30)],
                         doBest = T, trace = T, plot = T,importance = T)
 tuned_RF_model #tune_RF - 19
 
+write.csv(rawdata_factors,'rawdata_factors.csv',row.names = F)
+
+TopP_TopS_data = rawdata_factors[(rawdata_factors$STORE_NUM==2277& rawdata_factors$UPC==1600027527),]
+write.csv(TopP_TopS_data,'TopP_TopS_data',row.names = F)
+TopP_TopS_data$Promo = ifelse(TopP_TopS_data$FEATURE == 0 &
+                                TopP_TopS_data$DISPLAY  == 0 &
+                                TopP_TopS_data$TPR_ONLY == 0,0,1)
+
+write.csv(TopP_TopS_data,'TopP_TopS_data.csv',row.names = F)
+
+Promdata=TopP_TopS_data[TopP_TopS_data$Promo==1,]
+BaseLineSpend=mean(TopP_TopS_data$SPEND[TopP_TopS_data$Promo==0])
+Promdata$INCR_SPEND = Promdata$SPEND - BaseLineSpend
+
+year(Promdata$WEEK_END_DATE)
+test = TopP_TopS_data[TopP_TopS_data$Promo==0,] %>% 
+        group_by(format(WEEK_END_DATE,'%Y'))%>%
+        mutate(bl = mean(SPEND))
+unique(test$bl)
+
+write.csv(Promdata,'Promdata.csv',row.names = F)
+
+#Promdata=TopP_TopS_data[TopP_TopS_data$Promo==1,]
+names(Promdata)
+test =Promdata[,c(7,10,11,12)]
+names(test)
+
+require(car)
+options(contrasts = c("contr.helmert", "contr.poly"))
+alias(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY+
+           (FEATURE*DISPLAY), data = test))
+
+Anova(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = test),type=3)
+summary(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = test))
+alias(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = test))
+Anova(lm(SPEND~FEATURE*DISPLAY, data = test),type=3)
+alias(lm(SPEND~FEATURE*DISPLAY, data = test))
+Anova(lm(SPEND~TPR_ONLY*DISPLAY, data = test),type=3)
+alias(lm(SPEND~TPR_ONLY*DISPLAY, data = test))
+Anova(lm(SPEND~FEATURE*TPR_ONLY, data = test),type=3)
+alias(lm(SPEND~FEATURE*TPR_ONLY, data = test))
+
+
+options(contrasts = c("contr.treatment", "contr.poly"))
+
+names(Promdata)
+test =Promdata[,c(26,10,11,12)]
+names(test)
+
+require(car)
+options(contrasts = c("contr.helmert", "contr.poly"))
+alias(lm(DISCOUNT_PRICE~FEATURE+DISPLAY+TPR_ONLY+
+           (FEATURE*DISPLAY), data = test))
+
+Anova(lm(DISCOUNT_PRICE~FEATURE+DISPLAY+TPR_ONLY, data = test),type=3)
+summary(lm(DISCOUNT_PRICE~FEATURE+DISPLAY+TPR_ONLY, data = test))
+alias(lm(DISCOUNT_PRICE~FEATURE+DISPLAY+TPR_ONLY, data = test))
+Anova(lm(DISCOUNT_PRICE~FEATURE*DISPLAY, data = test),type=3)
+alias(lm(DISCOUNT_PRICE~FEATURE*DISPLAY, data = test))
+Anova(lm(DISCOUNT_PRICE~TPR_ONLY*DISPLAY, data = test),type=3)
+alias(lm(DISCOUNT_PRICE~TPR_ONLY*DISPLAY, data = test))
+Anova(lm(DISCOUNT_PRICE~FEATURE*TPR_ONLY, data = test),type=3)
+alias(lm(DISCOUNT_PRICE~FEATURE*TPR_ONLY, data = test))
+
+
+options(contrasts = c("contr.treatment", "contr.poly"))
+
+
+storedata = rawdata_factors %>%
+              group_by(STORE_NUM) %>%
+              mutate(AVG_WEEKLY_SPEND = mean(SPEND),
+                     AVG_WEEKLY_UNITS_SOLD = mean(UNITS),
+                     AVG_WEEKLY_VISITS = mean(VISITS),
+                     AVG_WEEKLY_HHS = mean(HHS)) %>%
+              dplyr::select(STORE_NUM,STORE_NAME,ADDRESS_CITY_NAME,
+                            ADDRESS_STATE_PROV_CODE,MSA_CODE,SEG_VALUE_NAME,
+                            PARKING_SPACE_QTY,SALES_AREA_SIZE_NUM,AVG_WEEKLY_BASKETS,
+                            AVG_WEEKLY_SPEND,AVG_WEEKLY_UNITS_SOLD,AVG_WEEKLY_VISITS,
+                            AVG_WEEKLY_HHS)
+
+storedata = unique(storedata)
+sapply(test,class)
+storedata$PARKING_FLAG = as.factor(ifelse(is.na(storedata$PARKING_SPACE_QTY),0,1))
+
+names(storedata)
+a = storedata[,c(4,6,14,8,9,12)]
+b = dummy.data.frame(a,sep='_',dummy.classes = 'all')
+names = c('ADDRESS_STATE_PROV_CODE','SEG_VALUE_NAME','SEG_VALUE_NAME')
+names(b)
+vif(b[10:12])
+
+storedata$C4=kmeans(b,centers = 4)$cluster
+
+
+write.csv(C,'c.csv',row.names = F)
+
+Clusterdata = storedata %>%
+                group_by(C4) %>%
+                mutate(AVG_WEEKLY_SPEND1 = mean(AVG_WEEKLY_SPEND),
+                       AVG_WEEKLY_UNITS_SOLD1 = mean(AVG_WEEKLY_UNITS_SOLD),
+                       AVG_WEEKLY_VISITS1 = mean(AVG_WEEKLY_VISITS),
+                       AVG_WEEKLY_HHS1 = mean(AVG_WEEKLY_HHS),
+                       AVG_WEEKLY_BASKETS1 = mean(AVG_WEEKLY_BASKETS),
+                       SALES_AREA_SIZE_NUM1 = mean(SALES_AREA_SIZE_NUM),
+                       NUM_STORE_WITH_PARKING = sum(as.numeric(PARKING_FLAG)),
+                       NUM_STORES = n() )%>%
+                dplyr::select(C4,AVG_WEEKLY_SPEND1,NUM_STORE_WITH_PARKING,NUM_STORES,AVG_WEEKLY_HHS1,AVG_WEEKLY_BASKETS1,
+                              AVG_WEEKLY_UNITS_SOLD1,AVG_WEEKLY_VISITS1,SALES_AREA_SIZE_NUM1)
+Clusterdata = unique(Clusterdata)
 
 
 
+write.csv(Clusterdata,'Clusterdata.csv',row.names = F)
+write.csv(storedata,'storedata.csv',row.names = F)
+
+storedata$C4=kmeans(b,centers = 4)$cluster
+sapply(b,class)
+mydata <- b
+wss <- (nrow(mydata)-1)*sum(apply(mydata,2,var))
+for (i in 2:15) wss[i] <- sum(kmeans(mydata,
+                                     centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
 
 
