@@ -131,12 +131,15 @@ storedata = rawdata_factors %>%
 
 storedata = unique(storedata)
 storedata$PARKING_FLAG = as.factor(ifelse(is.na(storedata$PARKING_SPACE_QTY),0,1))
+storedata$PARKING_NEW = ifelse(is.na(storedata$PARKING_SPACE_QTY),0,storedata$PARKING_SPACE_QTY)
 ##  Clustering 
 require(dummies) ## to reacte dummy variables for factor data
-temp = dummy.data.frame(as.data.frame(storedata[,c(4,6,14,8,9,12)]),sep='_')
-usdm::vif(temp[10:12])
-storedata$C4=kmeans(temp,centers = 4)$cluster
-rm(temp)
+names(storedata[,c(15,8,9,12)])
+# temp = dummy.data.frame(as.data.frame(storedata[,c(14,8,9,12)]),sep='_')
+# usdm::vif(temp[2:5])
+set.seed(1234)
+storedata$C4=kmeans(storedata[,c(15,8,9,12)],centers = 4)$cluster
+# rm(temp)
 ## Cluster's dataframe creating
 Clusterdata = storedata %>%
                 group_by(C4) %>%
@@ -153,3 +156,22 @@ Clusterdata = storedata %>%
 Clusterdata = unique(Clusterdata)
 write.csv(Clusterdata,'Clusterdata.csv',row.names = F)
 write.csv(storedata,'storedata.csv',row.names = F)
+write.csv(storedata[c(1,16)],'Clus.csv',row.names = F)
+require(ggplot2)
+ggplot(storedata)+
+  geom_point(aes(x= SALES_AREA_SIZE_NUM,
+                 y=AVG_WEEKLY_BASKETS,
+                 color=as.factor(C4),
+                 shape = as.factor(PARKING_FLAG),
+                 size = AVG_WEEKLY_VISITS))
+
+
+
+
+
+
+
+
+
+
+
