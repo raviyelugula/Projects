@@ -86,7 +86,7 @@ rawdata_factors = rawdata_factors[,-c(25,26)]
 write.csv(rawdata_factors,'rawdata_factors.csv',row.names = F)
 
 ### Top Store : ANDERSON TOWNE CTR, Top Product : GM HONEY NUT CHEERIOS analysis
-##  Building the dataset
+##  Building the dataset - 2277,25027,24991
 TopP_TopS_data = rawdata_factors[(rawdata_factors$STORE_NUM==2277& rawdata_factors$UPC==1600027527),]
 TopP_TopS_data$Promo = ifelse(TopP_TopS_data$FEATURE == 0 &
                                 TopP_TopS_data$DISPLAY  == 0 &
@@ -106,6 +106,7 @@ require(car) # to set un-ordered factors ranking method, helmert - baseline is o
 options(contrasts = c("contr.helmert", "contr.poly"))
 Anova(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = Promdata[,c(7,10,11,12)]),type=3)
 summary(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = Promdata[,c(7,10,11,12)]))
+alias(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = Promdata[,c(7,10,11,12)]))
 Anova(lm(SPEND~FEATURE*DISPLAY, data = Promdata[,c(7,10,11,12)]),type=3)
 summary(lm(SPEND~FEATURE*DISPLAY, data = Promdata[,c(7,10,11,12)]))
 Anova(lm(SPEND~TPR_ONLY*DISPLAY, data = Promdata[,c(7,10,11,12)]),type=3)
@@ -132,13 +133,34 @@ storedata = rawdata_factors %>%
 storedata = unique(storedata)
 storedata$PARKING_FLAG = as.factor(ifelse(is.na(storedata$PARKING_SPACE_QTY),0,1))
 storedata$PARKING_NEW = ifelse(is.na(storedata$PARKING_SPACE_QTY),0,storedata$PARKING_SPACE_QTY)
-##  Clustering 
+##  Optimal centers for Clustering 
+k.max <- 10
+data <- storedata[,c(15,8,9,12)]
+set.seed(1234)
+wss <- sapply(1:k.max, 
+              function(k){kmeans(data, k, nstart=10,iter.max = 10 )$tot.withinss})
+wss
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K",
+     ylab="Total within-clusters sum of squares",
+     main='Elbeow method using wss')
+# require(factoextra)
+# require(NbClust)
+# fviz_nbclust(data, kmeans, method = "wss") +
+#   labs(subtitle = "Elbow method")
+# fviz_nbclust(data, kmeans, method = "silhouette")+
+#   labs(subtitle = "Silhouette method")
+# set.seed(1234)
+# fviz_nbclust(data, kmeans, nstart = 25,  method = "gap_stat", nboot = 50)+
+#   labs(subtitle = "Gap statistic method")
+
 require(dummies) ## to reacte dummy variables for factor data
 names(storedata[,c(15,8,9,12)])
 # temp = dummy.data.frame(as.data.frame(storedata[,c(14,8,9,12)]),sep='_')
 # usdm::vif(temp[2:5])
 set.seed(1234)
-storedata$C4=kmeans(storedata[,c(15,8,9,12)],centers = 4)$cluster
+storedata$C4=kmeans(storedata[,c(15,8,9,12)],centers = 3)$cluster
 # rm(temp)
 ## Cluster's dataframe creating
 Clusterdata = storedata %>%
@@ -165,7 +187,71 @@ ggplot(storedata)+
                  shape = as.factor(PARKING_FLAG),
                  size = AVG_WEEKLY_VISITS))
 
+### Bottom Store : Over the Rhine, Top Product : GM HONEY NUT CHEERIOS analysis
+##  Building the dataset - 8035,23055,367
+TopP_BottomS_data = rawdata_factors[(rawdata_factors$STORE_NUM==367& rawdata_factors$UPC==1600027527),]
+TopP_BottomS_data$Promo = ifelse(TopP_BottomS_data$FEATURE == 0 &
+                                TopP_BottomS_data$DISPLAY  == 0 &
+                                TopP_BottomS_data$TPR_ONLY == 0,0,1)
+write.csv(TopP_BottomS_data,'TopP_BottomS_data.csv',row.names = F)
+##  Creating BaseLine Spend 
+Promdata=TopP_BottomS_data[TopP_BottomS_data$Promo==1,]
+BaseLineSpend_3Y=mean(TopP_BottomS_data$SPEND[TopP_BottomS_data$Promo==0])
+Promdata$INCR_SPEND = Promdata$SPEND - BaseLineSpend_3Y
+NonPromdata = TopP_BottomS_data[TopP_BottomS_data$Promo==0,] %>% 
+  group_by(format(WEEK_END_DATE,'%Y'))%>%
+  mutate( BaseLineSpend_eachY= mean(SPEND))
+unique(NonPromdata$BaseLineSpend_eachY)
+write.csv(Promdata,'Promdata.csv',row.names = F)
+## analysing SPEND influencer for Top Product in the bottom Store
+require(car) # to set un-ordered factors ranking method, helmert - baseline is one method rest referring to it
+options(contrasts = c("contr.helmert", "contr.poly"))
+Anova(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = Promdata[,c(7,10,11,12)]),type=3)
+summary(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = Promdata[,c(7,10,11,12)]))
+Anova(lm(SPEND~FEATURE*DISPLAY, data = Promdata[,c(7,10,11,12)]),type=3)
+summary(lm(SPEND~FEATURE*DISPLAY, data = Promdata[,c(7,10,11,12)]))
+Anova(lm(SPEND~TPR_ONLY*DISPLAY, data = Promdata[,c(7,10,11,12)]),type=3)
+alias(lm(SPEND~TPR_ONLY*DISPLAY, data = Promdata[,c(7,10,11,12)]))
+Anova(lm(SPEND~FEATURE*TPR_ONLY, data = Promdata[,c(7,10,11,12)]),type=3)
+alias(lm(SPEND~FEATURE*TPR_ONLY, data = Promdata[,c(7,10,11,12)]))
+options(contrasts = c("contr.treatment", "contr.poly"))
+rm(list=c('Promdata','NonPromdata','TopP_BottomS_data'))
 
+### Cluster wise, Top Product : GM HONEY NUT CHEERIOS analysis
+##  Building the dataset 
+rawdata_factors = rawdata_factors %>%
+                    left_join(storedata[c('STORE_NUM','C4')],by='STORE_NUM')
+TopP_ClusterBy_data = rawdata_factors[(rawdata_factors$C4==4& rawdata_factors$UPC==1600027527),]
+TopP_ClusterBy_data$Promo = ifelse(TopP_ClusterBy_data$FEATURE == 0 &
+                                TopP_ClusterBy_data$DISPLAY  == 0 &
+                                TopP_ClusterBy_data$TPR_ONLY == 0,0,1)
+write.csv(TopP_ClusterBy_data,'TopP_ClusterBy_data.csv',row.names = F)
+##  Creating BaseLine Spend 
+Promdata=TopP_ClusterBy_data[TopP_ClusterBy_data$Promo==1,]
+BaseLineSpend_3Y=mean(TopP_ClusterBy_data$SPEND[TopP_ClusterBy_data$Promo==0])
+Promdata$INCR_SPEND = Promdata$SPEND - BaseLineSpend_3Y
+NonPromdata = TopP_ClusterBy_data[TopP_ClusterBy_data$Promo==0,] %>% 
+  group_by(format(WEEK_END_DATE,'%Y'))%>%
+  mutate( BaseLineSpend_eachY= mean(SPEND))
+unique(NonPromdata$BaseLineSpend_eachY)
+write.csv(Promdata,'Promdata.csv',row.names = F)
+## analysing SPEND influencer for Top Product in this cluster
+require(car) # to set un-ordered factors ranking method, helmert - baseline is one method rest referring to it
+options(contrasts = c("contr.helmert", "contr.poly"))
+Anova(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = Promdata[,c(7,10,11,12)]),type=3)
+Anova(lm(SPEND~FEATURE*DISPLAY*TPR_ONLY, data = Promdata[,c(7,10,11,12)]),type=3)
+alias(lm(SPEND~FEATURE*DISPLAY*TPR_ONLY, data = Promdata[,c(7,10,11,12)]))
+
+
+summary(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = Promdata[,c(7,10,11,12)]))alias(lm(SPEND~FEATURE+DISPLAY+TPR_ONLY, data = Promdata[,c(7,10,11,12)]))
+Anova(lm(SPEND~FEATURE*DISPLAY, data = Promdata[,c(7,10,11,12)]),type=3)
+summary(lm(SPEND~FEATURE*DISPLAY, data = Promdata[,c(7,10,11,12)]))
+Anova(lm(SPEND~TPR_ONLY*DISPLAY, data = Promdata[,c(7,10,11,12)]),type=3)
+alias(lm(SPEND~TPR_ONLY*DISPLAY, data = Promdata[,c(7,10,11,12)]))
+Anova(lm(SPEND~FEATURE*TPR_ONLY, data = Promdata[,c(7,10,11,12)]),type=3)
+alias(lm(SPEND~FEATURE*TPR_ONLY, data = Promdata[,c(7,10,11,12)]))
+options(contrasts = c("contr.treatment", "contr.poly"))
+rm(list=c('Promdata','NonPromdata','TopP_ClusterBy_data'))
 
 
 
