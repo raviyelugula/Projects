@@ -101,6 +101,8 @@ NonPromdata = TopP_TopS_data[TopP_TopS_data$Promo==0,] %>%
         mutate( BaseLineSpend_eachY= mean(SPEND))
 unique(NonPromdata$BaseLineSpend_eachY)
 write.csv(Promdata,'Promdata.csv',row.names = F)
+
+
 ## analysing SPEND influencer for Top Product in the top Store
 require(car) # to set un-ordered factors ranking method, helmert - baseline is one method rest referring to it
 options(contrasts = c("contr.helmert", "contr.poly"))
