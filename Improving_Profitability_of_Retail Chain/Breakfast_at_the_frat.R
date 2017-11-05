@@ -120,24 +120,36 @@ rm(list=c('Promdata','NonPromdata','TopP_TopS_data'))
 
 ### Store Wise Clustering
 ##  Building a dataframe =, with store details and avg sales details
-storedata = rawdata_factors %>%
+storedata2 = rawdata_factors %>%
               group_by(STORE_NUM) %>%
-              mutate(AVG_WEEKLY_SPEND = mean(SPEND),
-                     AVG_WEEKLY_UNITS_SOLD = mean(UNITS),
-                     AVG_WEEKLY_VISITS = mean(VISITS),
-                     AVG_WEEKLY_HHS = mean(HHS)) %>%
               dplyr::select(STORE_NUM,STORE_NAME,ADDRESS_CITY_NAME,
                             ADDRESS_STATE_PROV_CODE,MSA_CODE,SEG_VALUE_NAME,
-                            PARKING_SPACE_QTY,SALES_AREA_SIZE_NUM,AVG_WEEKLY_BASKETS,
-                            AVG_WEEKLY_SPEND,AVG_WEEKLY_UNITS_SOLD,AVG_WEEKLY_VISITS,
-                            AVG_WEEKLY_HHS)
-
-storedata = unique(storedata)
+                            PARKING_SPACE_QTY,SALES_AREA_SIZE_NUM,AVG_WEEKLY_BASKETS)
+storedata1 = rawdata_factors %>%
+  group_by(STORE_NUM,WEEK_END_DATE) %>%
+  mutate(AVG_WEEKLY_SPEND1 = mean(SPEND),
+         AVG_WEEKLY_UNITS_SOLD1 = mean(UNITS),
+         AVG_WEEKLY_VISITS1 = mean(VISITS),
+         AVG_WEEKLY_HHS1 = mean(HHS)) %>%
+  dplyr::select(STORE_NUM,AVG_WEEKLY_SPEND1,AVG_WEEKLY_UNITS_SOLD1,
+                AVG_WEEKLY_VISITS1,AVG_WEEKLY_HHS1,WEEK_END_DATE)
+storedata1 = storedata1 %>%
+  group_by(STORE_NUM) %>%
+  mutate(AVG_WEEKLY_SPEND = mean(AVG_WEEKLY_SPEND1),
+         AVG_WEEKLY_UNITS_SOLD = mean(AVG_WEEKLY_UNITS_SOLD1),
+         AVG_WEEKLY_VISITS = mean(AVG_WEEKLY_VISITS1),
+         AVG_WEEKLY_HHS = mean(AVG_WEEKLY_HHS1)) %>%
+  dplyr::select(STORE_NUM,AVG_WEEKLY_SPEND,AVG_WEEKLY_UNITS_SOLD,
+         AVG_WEEKLY_VISITS,AVG_WEEKLY_HHS) 
+storedata1 = unique(storedata1)
+storedata2 = unique(storedata2)
+storedata = left_join(storedata1,storedata2,by='STORE_NUM')
+rm(list = c('storedata1','storedata2'))
 storedata$PARKING_FLAG = as.factor(ifelse(is.na(storedata$PARKING_SPACE_QTY),0,1))
 storedata$PARKING_NEW = ifelse(is.na(storedata$PARKING_SPACE_QTY),0,storedata$PARKING_SPACE_QTY)
 ##  Optimal centers for Clustering 
 k.max <- 10
-data <- storedata[,c(15,8,9,12)]
+data <- storedata[,c(15,12,13,4)]
 set.seed(1234)
 wss <- sapply(1:k.max, 
               function(k){kmeans(data, k, nstart=10,iter.max = 10 )$tot.withinss})
@@ -158,11 +170,11 @@ plot(1:k.max, wss,
 #   labs(subtitle = "Gap statistic method")
 
 require(dummies) ## to reacte dummy variables for factor data
-names(storedata[,c(15,8,9,12)])
+names(storedata[,c(15,12,13,4)])
 # temp = dummy.data.frame(as.data.frame(storedata[,c(14,8,9,12)]),sep='_')
 # usdm::vif(temp[2:5])
 set.seed(1234)
-storedata$C4=kmeans(storedata[,c(15,8,9,12)],centers = 3)$cluster
+storedata$C4=kmeans(storedata[,c(15,12,13,4)],centers = 3)$cluster
 # rm(temp)
 ## Cluster's dataframe creating
 Clusterdata = storedata %>%
@@ -223,7 +235,7 @@ rm(list=c('Promdata','NonPromdata','TopP_BottomS_data'))
 ##  Building the dataset 
 rawdata_factors = rawdata_factors %>%
                     left_join(storedata[c('STORE_NUM','C4')],by='STORE_NUM')
-TopP_ClusterBy_data = rawdata_factors[(rawdata_factors$C4==4& rawdata_factors$UPC==1600027527),]
+TopP_ClusterBy_data = rawdata_factors[(rawdata_factors$C4==3& rawdata_factors$UPC==1600027527),]
 TopP_ClusterBy_data$Promo = ifelse(TopP_ClusterBy_data$FEATURE == 0 &
                                 TopP_ClusterBy_data$DISPLAY  == 0 &
                                 TopP_ClusterBy_data$TPR_ONLY == 0,0,1)
