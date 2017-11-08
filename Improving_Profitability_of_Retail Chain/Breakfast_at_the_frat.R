@@ -267,7 +267,75 @@ alias(lm(SPEND~FEATURE*TPR_ONLY, data = Promdata[,c(7,10,11,12)]))
 options(contrasts = c("contr.treatment", "contr.poly"))
 rm(list=c('Promdata','NonPromdata','TopP_ClusterBy_data'))
 
+data=read.csv("work1.csv", header=T)
+summary(data)
+store_lis=unique(data$STORE_NUM)
+i=store_lis[1]
+require(sjPlot)
+require(broom)
+for(i in store_lis){
+  data1=subset(data,STORE_NUM==i)
+  data_a=data1[,c(7,10,11,12)]
+  data_a$FEATURE=as.factor(data_a$FEATURE)
+  data_a$DISPLAY=as.factor(data_a$DISPLAY)
+  data_a$TPR_ONLY=as.factor(data_a$TPR_ONLY)
+  model=lm(SPEND~FEATURE+DISPLAY+TPR_ONLY,data = data1)
+  print(summary(model))
+  out=tidy(model)
+  write.csv(out,paste(i,".csv"))
+}
 
+data=read.csv("work1.csv", header=T)
+summary(data)
+Prod_lis=unique(data$UPC)
+i=Prod_lis[1]
+require(sjPlot)
+require(broom)
+output = data.frame(
+  productCode = numeric(0),
+  Intercept_PValue = numeric(0),
+  FEATURE_PValue = numeric(0),
+  DISPLAY_PValue = numeric(0),
+  TPR_ONLY_PValue = numeric(0),
+  F_Length = numeric(0),
+  D_Length = numeric(0),
+  T_Length = numeric(0)
+)
+n =names(output)
+for(i in Prod_lis){
+  data1=subset(data,UPC==i)
+  data_a=data1[,c(7,10,11,12)]
+  data_a$FEATURE=as.factor(data_a$FEATURE)
+  data_a$DISPLAY=as.factor(data_a$DISPLAY)
+  data_a$TPR_ONLY=as.factor(data_a$TPR_ONLY)
+  model=lm(SPEND~FEATURE+DISPLAY+TPR_ONLY,data = data1)
+  print(summary(model))
+  out=tidy(model)
+  temp = coef(summary(model))[, "Pr(>|t|)"]
+  output = rbind(output,data.frame(i,temp["(Intercept)"],
+                                   temp["FEATURE"],temp["DISPLAY"],
+                                   temp["TPR_ONLY"],length(unique(data1$FEATURE)),
+                                   length(unique(data1$DISPLAY)),length(unique(data1$TPR_ONLY))))
+  
+  #write.csv(out,paste(i,".csv"))
+}
+colnames(output) = n
+output$F_Sig = ifelse(output$FEATURE_PValue<=0.05,'F','')
+output$D_Sig = ifelse(output$DISPLAY_PValue<=0.05,'D','')
+output$T_Sig = ifelse(output$TPR_ONLY_PValue<=0.05,'T','')
+o=output %>%
+  dplyr::select(c(1,9,10,11)) %>%
+  dplyr::mutate(Sig_modes = (F_Sig=='F')+(D_Sig=='D')+(T_Sig=='T')) %>%
+  dplyr::arrange(desc(Sig_modes))
+write.csv(o,"o.csv",row.names = F)
+
+o2 = rawdata_factors %>% 
+  dplyr::group_by(UPC) %>%
+  dplyr::mutate(SPEND_T = sum(SPEND),
+                DISCOUNT_T = sum(DISCOUNT_PRICE)) %>%
+  dplyr::select(c(3,30,31))
+o2 = unique(o2)
+o = o %>% dplyr::left_join(o2, by = c('productCode'='UPC'))
 
 
 
