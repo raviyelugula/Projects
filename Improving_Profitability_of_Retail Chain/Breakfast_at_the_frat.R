@@ -338,8 +338,173 @@ o2 = unique(o2)
 o = o %>% dplyr::left_join(o2, by = c('productCode'='UPC'))
 
 
+write.csv(rawdata_factors,'rawdata_factors.csv', row.names = F)
+
+P1 = subset(rawdata_factors, UPC=='1600027527') 
+P1$Promo = ifelse(P1$FEATURE==1 | P1$DISPLAY==1 | P1$TPR_ONLY==1 , 
+                 1, 0)
+P1_Promo = subset(P1, Promo == 1)
+P1_NoPromo = subset(P1, Promo == 0)
+P1_PROMO_TREND = P1_Promo %>% 
+                  dplyr::select(WEEK_END_DATE,SPEND) %>%
+                  dplyr::group_by(WEEK_END_DATE) %>%
+                  dplyr::mutate(PROMO_SPEND = sum(SPEND)) %>%
+                  dplyr::select(WEEK_END_DATE,PROMO_SPEND) %>%
+                  unique()
+P1_NoPROMO_TREND = P1_NoPromo %>% 
+                  dplyr::select(WEEK_END_DATE,SPEND) %>%
+                  dplyr::group_by(WEEK_END_DATE) %>%
+                  dplyr::mutate(NoPROMO_SPEND = sum(SPEND)) %>%
+                  dplyr::select(WEEK_END_DATE,NoPROMO_SPEND) %>%
+                  unique()
+P1_Total = P1 %>%
+            dplyr::select(WEEK_END_DATE,SPEND) %>%
+            dplyr::group_by(WEEK_END_DATE) %>%
+            dplyr::mutate(TOTAL_SPEND = sum(SPEND)) %>%
+            dplyr::select(WEEK_END_DATE,TOTAL_SPEND) %>%
+            unique()
+P1_W_PROMO = P1 %>%
+            dplyr::select(WEEK_END_DATE,Promo) %>%
+            dplyr::group_by(WEEK_END_DATE) %>%
+            dplyr::mutate(W_PROMO = ifelse(sum(Promo)==0,0,1)) %>%
+            dplyr::select(WEEK_END_DATE,W_PROMO) %>%
+            unique()
+P1_Complete = P1_Total %>%
+              full_join(P1_NoPROMO_TREND,by= 'WEEK_END_DATE') %>%
+              full_join(P1_PROMO_TREND,by= 'WEEK_END_DATE') %>%
+              full_join(P1_W_PROMO, by= 'WEEK_END_DATE')
+
+P1_Complete$BASE_SPEND = rollmean(P1_Complete$TOTAL_SPEND,k=4,na.pad = T)
+#P1_Complete$BASE_SPEND = runmin(P1_Complete$TOTAL_SPEND,k=4)
+write.csv(P1_Complete,'P1_Complete.csv',row.names = F)
+
+# if(is.na(P1_Complete$PROMO_SPEND[1])){
+#   P1_Complete$PROMO_SPEND[1] = P1_Complete$PROMO_SPEND[which(!is.na(P1_Complete$PROMO_SPEND))[1]]
+# }
+# if(is.na(P1_Complete$NoPROMO_SPEND[1])){
+#   P1_Complete$NoPROMO_SPEND[1] = P1_Complete$NoPROMO_SPEND[which(!is.na(P1_Complete$NoPROMO_SPEND))[1]]
+# }
+# if(is.na(P1_Complete$BASE_SPEND[1])){
+#   P1_Complete$BASE_SPEND[1] = P1_Complete$BASE_SPEND[which(!is.na(P1_Complete$BASE_SPEND))[1]]
+# }
+
+require(zoo)
+# P1_Complete = transform(P1_Complete, 
+#                          NoPROMO_SPEND= na.locf(NoPROMO_SPEND),
+#                          PROMO_SPEND= na.locf(PROMO_SPEND)
+#                          #,BASE_SPEND = na.locf(BASE_SPEND)
+#                         )
+P1_Complete$INC_SPEND = P1_Complete$TOTAL_SPEND - P1_Complete$BASE_SPEND
+P1_Complete$PROMO_EFFECTIVENESS = (P1_Complete$INC_SPEND/P1_Complete$PROMO_SPEND)*100
+write.csv(P1_Complete,'P1_Complete_full.csv',row.names = F)
+temp =subset(P1_Complete, P1_Complete$W_PROMO == 1)
+mean(temp$PROMO_EFFECTIVENESS,na.rm  = T)
+
+ggplot(P1_Complete, aes(x=WEEK_END_DATE ))+
+  #geom_line(aes(y=PROMO_SPEND),color='red',show.legend = F)+
+  #geom_line(aes(y=NoPROMO_SPEND),color='blue',show.legend = F)+
+  geom_line(aes(y=BASE_SPEND),color='orange',show.legend = F)+
+  geom_line(aes(y=TOTAL_SPEND),color='black',show.legend = F)+
+  ylab('SALES')
+
+ggplot(P1_Complete, aes(x=WEEK_END_DATE ))+
+  geom_line(aes(y=(PROMO_SPEND)),color='red',show.legend = F)+
+  geom_line(aes(y=(PROMO_EFFECTIVENESS)),color='blue',show.legend = F)+
+  geom_line(aes(y=(BASE_SPEND)),color='orange',show.legend = F)+
+  geom_line(aes(y=(TOTAL_SPEND)),color='black',show.legend = F)+
+  ylab('SALES')
 
 
+rawdata_factors$Promo = ifelse(rawdata_factors$FEATURE==1 | rawdata_factors$DISPLAY==1 | rawdata_factors$TPR_ONLY==1,1, 0)
+Product_list = unique(rawdata$UPC)
+Product_NA_data = data.frame(integer(),integer(),integer())
+for(PID in Product_list){
+  #PID = '1111009507'# '1111085345'
+  P = subset(rawdata_factors, UPC== PID) 
+  P_Promo = subset(P, Promo == 1)
+  P_NoPromo = subset(P, Promo == 0)
+  P_PROMO_TREND = P_Promo %>% 
+    dplyr::select(WEEK_END_DATE,SPEND) %>%
+    dplyr::group_by(WEEK_END_DATE) %>%
+    dplyr::mutate(PROMO_SPEND = mean(SPEND)) %>%
+    dplyr::select(WEEK_END_DATE,PROMO_SPEND) %>%
+    unique()
+  P_NoPROMO_TREND = P_NoPromo %>% 
+    dplyr::select(WEEK_END_DATE,SPEND) %>%
+    dplyr::group_by(WEEK_END_DATE) %>%
+    dplyr::mutate(NoPROMO_SPEND = mean(SPEND)) %>%
+    dplyr::select(WEEK_END_DATE,NoPROMO_SPEND) %>%
+    unique()
+  P_Complete = P_NoPROMO_TREND %>%
+    full_join(P_PROMO_TREND,by = 'WEEK_END_DATE')
+  print.noquote(paste0(PID,' NAs in PROMO_SPEND:',length(which(is.na(P_Complete$PROMO_SPEND))),
+                       ' NoPROMO_SPEND: ',length(which(is.na(P_Complete$NoPROMO_SPEND))),
+                       ' No Obs: ',length(P_Complete$NoPROMO_SPEND)))
+  Product_NA_data = rbind(Product_NA_data,data.frame(PID,length(which(is.na(P_Complete$PROMO_SPEND))),length(which(is.na(P_Complete$NoPROMO_SPEND)))))
+  if(is.na(P_Complete$PROMO_SPEND[1])){
+    P_Complete$PROMO_SPEND[1] = P_Complete$PROMO_SPEND[which(!is.na(P_Complete$PROMO_SPEND))[1]]
+  }
+  if(is.na(P_Complete$NoPROMO_SPEND[1])){
+    P_Complete$NoPROMO_SPEND[1] = P_Complete$NoPROMO_SPEND[which(!is.na(P_Complete$NoPROMO_SPEND))[1]]
+  }
+  P_Complete = transform(P_Complete, 
+                          NoPROMO_SPEND= na.locf(NoPROMO_SPEND),
+                          PROMO_SPEND= na.locf(PROMO_SPEND))
+  write.csv(P_Complete,paste(PID,"_PROMO_ANALYSIS.csv"))
+  name = paste(PID,'.png', sep = '')
+  png(filename =paste0('plots/',name), width = 800, height = 600, units = 'px')
+  print(ggplot(P_Complete, aes(x=WEEK_END_DATE ))+
+        geom_line(aes(y=PROMO_SPEND,col='red'),show.legend = F)+
+        geom_line(aes(y=NoPROMO_SPEND,col='blue'),show.legend = F)+
+        ylab('SALES')+ggtitle(PID))
+  dev.off()
+}
+colnames(Product_NA_data) = c('UPC','PROMO_SPEND','NoPROMO_SPEND')
 
+rm(list = c('P1','P1_Complete','P1_Complete1','P1_NoPromo','P1_NoPROMO_TREND',
+            'P1_Promo','P1_PROMO_TREND','P1_Total','P1_W_PROMO','P1_W_PROMO1'))
 
+P1 = subset(rawdata_factors, UPC=='1600027527') 
+P1$Promo = ifelse(P1$FEATURE==1 | P1$DISPLAY==1 | P1$TPR_ONLY==1 , 
+                  1, 0)
+P1_Promo = subset(P1, Promo == 1)
+P1_NoPromo = subset(P1, Promo == 0)
+P1_PROMO_TREND = P1_Promo %>% 
+  dplyr::select(WEEK_END_DATE,SPEND) %>%
+  dplyr::group_by(WEEK_END_DATE) %>%
+  dplyr::mutate(PROMO_SPEND = sum(SPEND)) %>%
+  dplyr::select(WEEK_END_DATE,PROMO_SPEND) %>%
+  unique()
+P1_NoPROMO_TREND = P1_NoPromo %>% 
+  dplyr::select(WEEK_END_DATE,SPEND) %>%
+  dplyr::group_by(WEEK_END_DATE) %>%
+  dplyr::mutate(NoPROMO_SPEND = sum(SPEND)) %>%
+  dplyr::select(WEEK_END_DATE,NoPROMO_SPEND) %>%
+  unique()
+P1_W_PROMO = P1 %>%
+  dplyr::select(WEEK_END_DATE,Promo) %>%
+  dplyr::group_by(WEEK_END_DATE) %>%
+  dplyr::mutate(W_PROMO = ifelse(sum(Promo)==0,0,1)) %>%
+  dplyr::select(WEEK_END_DATE,W_PROMO) %>%
+  unique()
+P1_Complete = P1_PROMO_TREND %>%
+  full_join(P1_NoPROMO_TREND,by= 'WEEK_END_DATE') %>%
+  #full_join(P1_PROMO_TREND,by= 'WEEK_END_DATE') %>%
+  full_join(P1_W_PROMO, by= 'WEEK_END_DATE')
+P1_Complete$BASE_SPEND = mean(P1_Complete$NoPROMO_SPEND,na.rm =T)
+write.csv(P1_Complete,'P1_Complete.csv',row.names = F)
+
+require(zoo)
+P1_Complete$INC_SPEND = P1_Complete$PROMO_SPEND - P1_Complete$BASE_SPEND
+P1_Complete$PROMO_EFFECTIVENESS = (P1_Complete$INC_SPEND/P1_Complete$PROMO_SPEND)*100
+write.csv(P1_Complete,'P1_Complete_full.csv',row.names = F)
+temp =subset(P1_Complete, P1_Complete$W_PROMO == 1)
+mean(temp$PROMO_EFFECTIVENESS,na.rm  = T)
+
+ggplot(P1_Complete, aes(x=WEEK_END_DATE ))+
+  geom_line(aes(y=PROMO_SPEND),color='red',show.legend = F)+
+  geom_line(aes(y=NoPROMO_SPEND),color='blue',show.legend = F)+
+  geom_line(aes(y=BASE_SPEND),color='orange',show.legend = F)+
+  geom_line(aes(y=TOTAL_SPEND),color='black',show.legend = F)+
+  ylab('SALES')
 
