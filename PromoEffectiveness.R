@@ -1,54 +1,67 @@
-rawdata_factors$Promo = ifelse(rawdata_factors$FEATURE==1 | rawdata_factors$DISPLAY==1 | rawdata_factors$TPR_ONLY==1,1, 0)
-Product_list = unique(rawdata$UPC)
-Product_NA_data = data.frame(integer(),integer(),integer())
-PE = data.frame(integer(),integer())
-for(PID in Product_list){
-  PID = '1600027527'# '1111085345'
-  P = subset(rawdata_factors, UPC== PID) 
-  P_Promo = subset(P, Promo == 1)
-  P_NoPromo = subset(P, Promo == 0)
-  P_PROMO_TREND = P_Promo %>% 
-    dplyr::select(WEEK_END_DATE,SPEND) %>%
-    dplyr::group_by(WEEK_END_DATE) %>%
-    dplyr::mutate(PROMO_SPEND = sum(SPEND)) %>%
-    dplyr::select(WEEK_END_DATE,PROMO_SPEND) %>%
-    unique()
-  P_NoPROMO_TREND = P_NoPromo %>% 
-    dplyr::select(WEEK_END_DATE,SPEND) %>%
-    dplyr::group_by(WEEK_END_DATE) %>%
-    dplyr::mutate(NoPROMO_SPEND = sum(SPEND)) %>%
-    dplyr::select(WEEK_END_DATE,NoPROMO_SPEND) %>%
-    unique()
-  P_Total = P %>%
-    dplyr::select(WEEK_END_DATE,SPEND) %>%
-    dplyr::group_by(WEEK_END_DATE) %>%
-    dplyr::mutate(TOTAL_SPEND = sum(SPEND)) %>%
-    dplyr::select(WEEK_END_DATE,TOTAL_SPEND) %>%
-    unique()
-  P_W_PROMO = P %>%
-    dplyr::select(WEEK_END_DATE,Promo) %>%
-    dplyr::group_by(WEEK_END_DATE) %>%
-    dplyr::mutate(W_PROMO = ifelse(sum(Promo)==0,0,1)) %>%
-    dplyr::select(WEEK_END_DATE,W_PROMO) %>%
-    unique()
-  P_Complete = P_Total %>%
-    full_join(P_NoPROMO_TREND,by= 'WEEK_END_DATE') %>%
-    full_join(P_PROMO_TREND,by= 'WEEK_END_DATE') %>%
-    full_join(P_W_PROMO, by= 'WEEK_END_DATE')
-  P_Complete$BASE_SPEND = runmin(P_Complete$TOTAL_SPEND,k=4)
-  P_Complete$INC_SPEND = P_Complete$TOTAL_SPEND - P_Complete$BASE_SPEND
-  P_Complete$PROMO_EFFECTIVENESS = (P_Complete$INC_SPEND/P_Complete$PROMO_SPEND)*100
-  temp =subset(P_Complete, P_Complete$W_PROMO == 1)
-  PromEff= mean(temp$PROMO_EFFECTIVENESS,na.rm  = T)
-  print.noquote(paste0(PID,' ',round(PromEff,2)))
-  PE = rbind(PE,data.frame(PID,PromEff))
-}
-write.csv(PE,"PE.csv",row.names = F)
+require(usdm)
+require(dplyr)
+require(forecast)
+require(ggplot2)
+data = read.csv("extract_dataP1.csv")
+data$WEEKEND_DATE=as.Date(data$WEEKEND_DATE,format="%d-%b-%y")
+P1 = subset(data, UPC=='1600027527') 
+P1_data = P1 %>%
+  select(WEEKEND_DATE,SPEND,FEATURE,DISPLAY,TPR_ONLY,
+         BASE_PRICE,PRICE) %>%
+  group_by(WEEKEND_DATE) %>%
+  mutate(W_TOTAL_SPEND = sum(SPEND),
+         W_FEATURE = ifelse(sum(FEATURE)==0,0,1),
+         W_DISPLAY = ifelse(sum(DISPLAY)==0,0,1),
+         W_TPR_ONLY = ifelse(sum(FEATURE)==0,0,1),
+         W_BASE_PRICE = mean(BASE_PRICE),
+         W_PRICE = mean(PRICE)) %>%
+  select(WEEKEND_DATE,W_TOTAL_SPEND,W_FEATURE,
+         W_DISPLAY,W_TPR_ONLY,W_BASE_PRICE,W_PRICE) %>%
+  unique()%>%
+  mutate(W_PROMO = ifelse(W_FEATURE+W_DISPLAY+W_TPR_ONLY == 0,0,1),
+         W_DISCOUNT = W_BASE_PRICE-W_PRICE )%>%
+  arrange(WEEKEND_DATE)
 
-temp = o %>% left_join(PE, by = c('productCode'='PID'))
+TS_data = ts(P1_data$W_TOTAL_SPEND, start = c(2009,1), end = c(2011,52), frequency = 52)
+plot(TS_data)
+Decomposition = decompose(TS_data)
+Decomposition$seasonal
+plot(Decomposition$seasonal)
 
+P1_data$W_Seasonal = as.numeric(Decomposition$seasonal)
 
+vif(data.frame(P1_data[,c(2,3,4,5,6,10)]))
+vif(data.frame(P1_data[,c(2,3,4,6,10)])) # removing TPR_ONLY due to collinearity
+LR_Model = lm(W_TOTAL_SPEND ~ W_BASE_PRICE+W_FEATURE+W_DISPLAY+W_Seasonal,
+              data = P1_data)
+summary(LR_Model)
+Coef = LR_Model$coefficients
 
+Base_Line = Coef[1]+Coef[2]*(P1_data$W_BASE_PRICE)+(Coef[5]*P1_data$W_Seasonal)
+INC = Coef[3]*(P1_data$W_FEATURE)+(Coef[4]*P1_data$W_DISPLAY)
 
+P1_data$BASE_LINE = Base_Line
+P1_data$INCREMENTAL = INC
 
+P_Promo = subset(P1, FEATURE == 1 | DISPLAY == 1| TPR_ONLY == 1)
+P_Promo = P_Promo %>% 
+              dplyr::select(WEEKEND_DATE,SPEND) %>%
+              dplyr::group_by(WEEKEND_DATE) %>%
+              dplyr::mutate(W_PROMO_SPEND = sum(SPEND)) %>%
+              dplyr::select(WEEKEND_DATE,W_PROMO_SPEND) %>%
+              unique()
 
+P1_data = P1_data %>%
+            left_join(P_Promo, by = 'WEEKEND_DATE')
+
+P1_data$P1_PE = P1_data$INCREMENTAL / P1_data$W_PROMO_SPEND *100
+View(data.frame(A=P1_data$INCREMENTAL+P1_data$BASE_LINE, B=P1_data$W_TOTAL_SPEND , C= P1_data$W_TOTAL_SPEND-P1_data$INCREMENTAL-P1_data$BASE_LINE))
+
+ggplot(P1_data, aes(x=WEEKEND_DATE ))+
+  geom_line(aes(y=W_TOTAL_SPEND),color='black',show.legend = F)+
+  geom_line(aes(y=BASE_LINE),color='blue',show.legend = F)+
+  geom_line(aes(y=INCREMENTAL),color='red',show.legend = F)+
+  geom_line(aes(y=P1_PE),color='tomato',show.legend = F)+
+  ylab('SALES')
+
+mean(P1_data$P1_PE,na.rm=T)
