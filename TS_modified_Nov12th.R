@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 require(usdm)
 require(forecast)
 require(ggplot2)
