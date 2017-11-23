@@ -4,11 +4,11 @@
     "created" : 1510601077186.000,
     "dirty" : false,
     "encoding" : "UTF-8",
-    "folds" : "",
+    "folds" : "33|24|63|111|\n64|60|75|27|\n76|63|164|0|\n165|21|192|26|\n",
     "hash" : "48375564",
     "id" : "F5A6CBEB",
     "lastKnownWriteTime" : 1511202606,
-    "last_content_update" : 1511202606587,
+    "last_content_update" : 1511457481092,
     "path" : "~/GitHub/Projects/Improving_Profitability_of_Retail Chain/Complete Analysis.R",
     "project_path" : "Complete Analysis.R",
     "properties" : {
