@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512633911320.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "3A98D749",
+    "lastKnownWriteTime" : 6874579163008561010,
+    "last_content_update" : 1512633911320,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "26701DCE",
+        "caption" : "Prom_Sig_mode_df",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=Prom_Sig_mode_df&cache_key=26701DCE",
+        "displayedObservations" : 55,
+        "environment" : "",
+        "object" : "Prom_Sig_mode_df",
+        "preview" : 0,
+        "totalObservations" : 55,
+        "variables" : 5
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

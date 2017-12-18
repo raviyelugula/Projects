@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512768840812.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "C8DE953",
+    "lastKnownWriteTime" : 8389754659302220320,
+    "last_content_update" : 1512768840812,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "context" : "package:stats:::residuals"
+    },
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_code_browser"
+}

@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512588500083.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "FF8C5E09",
+    "lastKnownWriteTime" : 6295878774607343474,
+    "last_content_update" : 1512588500083,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "8BD68B15",
+        "caption" : "product_WeeklyAvg_basePrice",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=product_WeeklyAvg_basePrice&cache_key=8BD68B15",
+        "displayedObservations" : "8304",
+        "environment" : "",
+        "object" : "product_WeeklyAvg_basePrice",
+        "preview" : "0",
+        "totalObservations" : "8304",
+        "variables" : "4"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

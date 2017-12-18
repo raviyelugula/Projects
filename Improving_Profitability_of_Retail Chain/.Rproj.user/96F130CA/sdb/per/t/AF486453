@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512727103040.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "AF486453",
+    "lastKnownWriteTime" : 3419473789575321445,
+    "last_content_update" : 1512727103040,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "5C76A960",
+        "caption" : "Autocorrelation",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=Autocorrelation&cache_key=5C76A960",
+        "displayedObservations" : 77,
+        "environment" : "",
+        "object" : "Autocorrelation",
+        "preview" : 0,
+        "totalObservations" : 77,
+        "variables" : 2
+    },
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

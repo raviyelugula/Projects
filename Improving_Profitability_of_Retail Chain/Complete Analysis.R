@@ -8,6 +8,7 @@ require(ggplot2) # Visualization
 require(usdm) # VIF
 require(tseries) # ADF test
 require(gridExtra) # multi ggplot in one pannel
+require(nlme) #Handline autocorrelation for linear regression
 
 # Building the Rawdata frame - complete data ------
 excel_sheets('dunnhumby - Breakfast at the Frat.xlsx')
@@ -37,9 +38,11 @@ non_baseprice_missing_rawdata = rawdata[,1:25][!apply(rawdata[,9], 1, function(x
 product_WeeklyAvg_basePrice = non_baseprice_missing_rawdata %>%
   dplyr::select(WEEK_END_DATE,UPC,BASE_PRICE)%>%
   group_by(UPC,WEEK_END_DATE) %>%
-  mutate(AVG_BASE_PRICE= round(mean(BASE_PRICE),2)) %>%
+  mutate(AVG_BASE_PRICE= round(mean(BASE_PRICE),2),
+         MED_BASE_PRICE = round(median(BASE_PRICE),2)) %>%
   dplyr::select(WEEK_END_DATE,UPC,AVG_BASE_PRICE) %>%
   unique()
+
 baseprice_missing_rawdata = rawdata[,1:25][apply(rawdata[,9], 1, function(x) any(is.na(x))),] 
 baseprice_missing_rawdata = baseprice_missing_rawdata %>%
   left_join(product_WeeklyAvg_basePrice,
@@ -137,17 +140,56 @@ TS_data_train_HW= HoltWinters(TS_data_train, alpha=0.1, beta=0.5, gamma=0.6)
 TS_data_train_HW_forecast= forecast(TS_data_train_HW, 12)
 plot(TS_data_train_HW_forecast)
 Accuracy_HW=accuracy(TS_data_train_HW_forecast,TS_data_test)
+
+Box.test(TS_data_train_HW_forecast$residuals, lag = 20, type = 'Ljung-Box')
+# H0: The data is independently distributed i,e no correlation.
+# H1: The data is not independently distributed i,e Correlation is evident
+
 # ARIMA model
 TS_data_train_ARIMA=auto.arima(TS_data_train)
 TS_data_train_ARIMA_forecast = forecast(TS_data_train_ARIMA, h=12)
 plot(TS_data_train_ARIMA_forecast)
 Accuracy_ARIMA=accuracy(TS_data_train_ARIMA_forecast,TS_data_test)
+
+acf(TS_data_train, lag.max = 20)
+pacf(TS_data_train, lag.max = 20)
+#Ho:a unit root , H1: is not a unit root ,i.e Stationary
+adf.test(diff(TS_data_train, lag = 1),alternative = "stationary")
+
+Box.test(TS_data_train_ARIMA_forecast$residuals, lag = 20, type = 'Ljung-Box')
+# H0: The data is independently distributed i,e no correlation.
+# H1: The data is not independently distributed i,e Correlation is evident
+
+plotForecastErrors <- function(forecasterrors)
+{
+  # make a histogram of the forecast errors:
+  mybinsize <- IQR(forecasterrors)/4
+  mysd <- sd(forecasterrors)
+  mymin <- min(forecasterrors) - mysd*5
+  mymax <- max(forecasterrors) + mysd*3
+  # generate normally distributed data with mean 0 and standard deviation mysd
+  mynorm <- rnorm(10000, mean=0, sd=mysd)
+  mymin2 <- min(mynorm)
+  mymax2 <- max(mynorm)
+  if (mymin2 < mymin) { mymin <- mymin2 }
+  if (mymax2 > mymax) { mymax <- mymax2 }
+  # make a red histogram of the forecast errors, with the normally distributed data overlaid:
+    mybins <- seq(mymin, mymax, mybinsize)
+hist(forecasterrors, col="red", freq=FALSE, breaks=mybins)
+# freq=FALSE ensures the area under the histogram = 1
+# generate normally distributed data with mean 0 and standard deviation mysd
+myhist <- hist(mynorm, plot=FALSE, breaks=mybins)
+# plot the normal curve as a blue line on top of the histogram of forecast errors:
+  points(myhist$mids, myhist$density, type="l", col="blue", lwd=2)
+}
+plotForecastErrors(TS_data_train_ARIMA_forecast$residuals)
+
 # TbATS model
 TS_data_train_TBATS = tbats(TS_data_train)
 TS_data_train_TBATS_forecast = forecast(TS_data_train_TBATS, h=12)
 plot(TS_data_train_TBATS_forecast)
 Accuracy_TBATS=accuracy(TS_data_train_TBATS_forecast,TS_data_test)
-# NNETS model
+# NNETS model      
 TS_data_train_NN = nnetar(TS_data_train)
 TS_data_train_NN_forecast = forecast(TS_data_train_NN, h=12)
 plot(TS_data_train_NN_forecast)
@@ -158,6 +200,7 @@ Accuracy_HW
 Accuracy_ARIMA
 Accuracy_TBATS
 Accuracy_NN
+
 # Prediction of sales for next 12 Weeks - ARIMA model
 ARIMA_model_completedata=auto.arima(TS_data)
 TS_data_forecast = forecast(ARIMA_model_completedata, h=12)
@@ -180,7 +223,59 @@ usdm::vif(as.data.frame(store_data[,c(7,8)])) # parking, store size and bucket s
 Store_St_Se_P_A_model = lm(AVG_WEEKLY_BASKETS~., data=temp[c(1:3,5,6,8:10)] )
 summary(Store_St_Se_P_A_model)
 Store_P_A = lm(AVG_WEEKLY_BASKETS~., data= store_data[,c(7,8,9)])
+Store_P_A = lm(AVG_WEEKLY_BASKETS~PARKING_SPACE_QTY+SALES_AREA_SIZE_NUM+SALES_AREA_SIZE_NUM*PARKING_SPACE_QTY, data= store_data[,c(7,8,9)])
 summary(Store_P_A)
+
+car::durbinWatsonTest(Store_P_A)
+#H0: There is no correlation
+#H1: There is correlation among error terms
+Box.test(Store_P_A$residuals, lag = 1, type = 'Ljung-Box')
+# H0: The data is independently distributed i,e no correlation.
+# H1: The data is not independently distributed i,e Correlation is evident
+
+par(mfrow=c(2,2))
+plot(Store_P_A) 
+dev.off()
+
+# Residuals vs Fitted values: No pattern => independent variables are Linear & Additive in nature 
+# Normal Q-Q  plot: Stright line => error terms are normally distriuted 
+# Scale-Location: point are scattered, no forming a funnel => No Hetero skedasticity
+# Residuals vs Leverage: 58th point is a influencial outlier
+usdm::vif(as.data.frame(store_data[-c(58,27),c(7,8)]))
+Store_P_A1 = lm(AVG_WEEKLY_BASKETS~., data= store_data[-c(58,27),c(7,8,9)])
+#Store_P_A1 = lm(AVG_WEEKLY_BASKETS~PARKING_SPACE_QTY+SALES_AREA_SIZE_NUM+SALES_AREA_SIZE_NUM*PARKING_SPACE_QTY, data= store_data[-c(58,27),c(7,8,9)])
+
+
+summary(Store_P_A1)
+car::durbinWatsonTest(Store_P_A1)
+#H0: There is no correlation
+#H1: There is correlation among error terms
+Box.test(Store_P_A1$residuals, lag = 1, type = 'Ljung-Box')
+# H0: The data is independently distributed i,e no correlation.
+# H1: The data is not independently distributed i,e Correlation is evident
+
+par(mfrow=c(2,2))
+plot(Store_P_A1) 
+dev.off()
+
+residuals = Store_P_A1$residuals
+parking_independent_var = store_data[-c(58,27),c(7)] 
+area_independent_var = store_data[-c(58,27),c(8)] 
+
+Autocorrelation = as.data.frame(cbind(residuals,parking_independent_var))
+Autocorrelation = Autocorrelation[order(Autocorrelation$PARKING_SPACE_QTY),]
+plot(Autocorrelation$residuals, Autocorrelation$PARKING_SPACE_QTY)
+
+Autocorrelation = as.data.frame(cbind(residuals,area_independent_var))
+Autocorrelation = Autocorrelation[order(Autocorrelation$SALES_AREA_SIZE_NUM),]
+plot(Autocorrelation$residuals, Autocorrelation$SALES_AREA_SIZE_NUM)
+
+acf(residuals,lag.max = 20)
+pacf(residuals,lag.max = 20)
+
+Store_P_A1_GLS = gls(AVG_WEEKLY_BASKETS~., data= store_data[-c(58,27),c(7,8,9)], correlation=corARMA(p=1,q=1))
+summary(Store_P_A1_GLS)
+
 # 3. No of visits and product sales relationship
 Weekly_Visit_data = rawdata_factors %>%
                         dplyr::select(WEEK_END_DATE,SPEND,VISITS) %>%
@@ -191,6 +286,7 @@ Weekly_Visit_data = rawdata_factors %>%
                         unique()
 Visit_Sales_model = lm(W_TOTAL_SPEND~W_TOTAL_VISIT, data = Weekly_Visit_data)
 summary(Visit_Sales_model)
+plot(Visit_Sales_model)
 # Promotional activities ----
 # Product wise Significant promotion
 all_product_list = unique(rawdata_factors$UPC)
@@ -317,7 +413,10 @@ k_max = 10
 C_data = storedata[,c(15,12,13,4)] #PARKING_NEW,SALES_AREA_SIZE_NUM,AVG_WEEKLY_BASKETS,AVG_WEEKLY_T_VISITS
 set.seed(1234)
 wss = sapply(1:k_max, 
-             function(k){kmeans(C_data, k, nstart=10,iter.max = 10 )$tot.withinss})
+             function(k){
+               kmeans(C_data, k, 
+                      nstart=10,iter.max = 10 )$tot.withinss
+               })
 wss
 plot(1:k_max, wss,
      type="b", pch = 19, frame = FALSE, 
